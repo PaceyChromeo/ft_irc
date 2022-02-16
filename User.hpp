@@ -22,11 +22,14 @@ class User{
 		void		setUser(std::string user) { this->_username = user; }
 		std::string	getNick() const { return this->_nickname;}
 		void		setNick(std::string nick) { this->_nickname = nick; }
+		std::string	getHost() const { return this->_host;}
+		void		setHost(std::string host) { this->_host = host; }
 
 	private:
 
 		std::string	_username;
 		std::string _nickname;
+		std::string _host;
 		bool		_operator;
 		User() : _username(""), _nickname(""), _operator(false) {};
 };
