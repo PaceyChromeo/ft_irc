@@ -21,6 +21,13 @@ std::string get_username(char *msg) {
     return username;
 }
 
+std::string get_hostname(char *msg) {
+
+        char **tab = ft_split(msg, ' ');
+        std::string hostname(tab[3]);
+        return hostname;
+}
+
 int main(int ac, char **av) {
 
     if (ac != 2){
@@ -41,7 +48,7 @@ int main(int ac, char **av) {
     while (octet_recv > 0) {
         std::cout << "Message recu : " << msg;
 		octet_recv = recv(newServ.getClient(), msg, 1000, 0);
-        User User(get_username(msg), get_nickname(msg), false);
+        User User(get_username(msg), get_nickname(msg), get_hostname(msg), false);
     }
 	close(newServ.getServer());
 	close(newServ.getClient());

@@ -17,7 +17,8 @@ endif
 SRC=	main.cpp \
 		Channel.cpp \
 		Server.cpp \
-		User.cpp
+		User.cpp \
+		Utils.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
