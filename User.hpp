@@ -6,7 +6,7 @@ class User {
 
 	public:
 
-		User(std::string user, std::string nick, std::string host, bool ope) : _username(user), _nickname(nick), _operator(ope) {};
+		User(std::string user, std::string nick, std::string host, bool ope) : _username(user), _nickname(nick), _host(host), _operator(ope) {};
 		User(const User & cpy) : _username(cpy._username), _nickname(cpy._nickname), _operator(cpy._operator) {};
 		User& operator=(const User & rhs){
 			if (this != &rhs){
