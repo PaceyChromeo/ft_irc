@@ -39,6 +39,11 @@ class Server{
 		        exit(EXIT_FAILURE);
 			}
 		};
+		std::string get_rpl_msg(std::string protocol, std::string nickname, std::string username) {
+			if (protocol == "RPL_WELCOME")
+				return (std::string("001 " + nickname + "\n\"Welcome to the Internet Relay Chat Network\"\n" + nickname + "!" + username + "@" + "localhost" + "\""));
+			return NULL;
+		}
 
 		~Server() {};
 
