@@ -14,11 +14,10 @@ ifneq (,$(findstring xterm,${TERM}))
 	RESET := $(shell tput -Txterm sgr0)
 endif
 
-SRC=	main.cpp \
-		Channel.cpp \
-		Server.cpp \
-		User.cpp \
-		Utils.cpp
+SRC=	srcs/main.cpp \
+		srcs/Channel.cpp \
+		srcs/Server.cpp \
+		srcs/Utils.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
