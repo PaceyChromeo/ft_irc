@@ -43,24 +43,25 @@ int main(int ac, char **av) {
 	Server	newServ(port, "toto");
 	char msg[1000];
     memset(msg, 0, 1000);
-    while (true) {
-		int octet_recv = recv(newServ.getClient(), msg, 1000, 0);
-        std::cout << msg;
+	int octet_recv = recv(newServ.getClient(), msg, 1000, 0);
+    while (octet_recv > 0) {
+        std::cout << msg << std::endl;
         if (octet_recv < 0){
             std::cerr << "Nothing to receive\n";
             close(newServ.getServer());
             close(newServ.getClient());
-            exit(1);
+            exit(EXIT_FAILURE);
         }
-        std::string nickname(get_nickname(msg));
-        std::string username(get_username(msg));
+        std::string nickname = get_nickname(msg);
+        std::string username = get_username(msg);
         std::string toSend("001 " + nickname + "\n\"Welcome to the Internet Relay Chat Network\"\n" + nickname + "!" + username + "@" + "localhost" + "\"");
-        send(newServ.getClient(), &toSend, toSend.length(), 0);
+        sleep(2);
+        if (send(newServ.getClient(), toSend.c_str(), toSend.size(), 0) < 0) {
+            std::cout << "Send error " << strerror(errno) << std::endl;
+            exit(EXIT_FAILURE);
+        }
         memset(msg, 0, 1000);
-        //User User(get_username(msg), get_nickname(msg), get_hostname(msg), false);
-        //std::string toSend("001 " + User.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + User.getNick() + "!" + User.getUser() + "@" + "localhost" + "\"");
-        //std::cout << toSend << std::endl;
-        //send(newServ.getClient(), &toSend, toSend.size(), 0);
+	    octet_recv = recv(newServ.getClient(), msg, 1000, 0);
     }
 	close(newServ.getServer());
 	close(newServ.getClient());

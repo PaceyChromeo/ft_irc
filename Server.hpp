@@ -17,7 +17,7 @@ class Server{
 		Server(int port, std::string pswd) : _port(port), _password(pswd) {
 			if ((_server = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				std::cerr << "Socket error: " << strerror(errno) << std::endl;
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			_addrServer.sin_family = AF_INET;
     		_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -25,18 +25,18 @@ class Server{
     		if ((bind(_server, (const struct sockaddr *) &_addrServer, sizeof(_addrServer))) < 0){
 				std::cerr << "Bind Error : " << strerror(errno) << std::endl;
 				close(_server);
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
     		if ((listen(_server, 30)) < 0){
 				std::cerr << "Listen error : " << strerror(errno) << std::endl;
 				close(_server);
-				exit (1);
+				exit(EXIT_FAILURE);
 			}
 			_csize = sizeof(_addrClient);
 			if ((_client = accept(_server, (struct sockaddr *) &_addrClient, &_csize)) < 0){
 				std::cerr << "Accept Error : " << strerror(errno) << std::endl;
 				close(_server);
-		        exit(1);
+		        exit(EXIT_FAILURE);
 			}
 		};
 
