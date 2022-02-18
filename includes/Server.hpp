@@ -32,12 +32,6 @@ class Server{
 				close(_server);
 				exit(EXIT_FAILURE);
 			}
-			_csize = sizeof(_addrClient);
-			if ((_client = accept(_server, (struct sockaddr *) &_addrClient, &_csize)) < 0){
-				std::cerr << "Accept Error : " << strerror(errno) << std::endl;
-				close(_server);
-		        exit(EXIT_FAILURE);
-			}
 		};
 		std::string get_rpl_msg(std::string protocol, std::string nickname, std::string username) {
 			if (protocol == "RPL_WELCOME")
@@ -48,18 +42,18 @@ class Server{
 		~Server() {};
 
 		int		getServer() const { return this->_server; };
-		int		getClient() const { return this->_client; };
+		//int		getClient() const { return this->_client; };
 		void	setServer(int serv) { this->_server = serv; };
-		void	setClient(int cli) { this->_client = cli; };
+		//void	setClient(int cli) { this->_client = cli; };
 
 	private:
 		int					_port;
 		std::string			_password;
 		struct sockaddr_in	_addrServer;
-    	struct sockaddr_in	_addrClient;
+    	//struct sockaddr_in	_addrClient;
 		int					_server;
-		int					_client;
-		socklen_t			_csize;
+		//int					_client;
+		//socklen_t			_csize;
 		//ssize_t				_octet_recv;
 		//User*				_users;
 		//Channel*			_channels;
