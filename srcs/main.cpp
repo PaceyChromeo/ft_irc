@@ -34,15 +34,15 @@ int main(int ac, char **av) {
 	Server	newServ(port, "toto");
 	char msg[1000];
     memset(msg, 0, 1000);
-	int octet_recv = recv(newServ.getClient(), msg, 1000, 0);
+
+    int octet_recv = recv(newServ.getClient(), msg, 1000, 0);
     std::string nickname = get_nickname(msg);
     std::string username = get_username(msg);
-    std::string toSend(newServ.get_rpl_msg("RPL_WELCOME", get_nickname(msg), get_username(msg)));
+    std::string toSend(newServ.get_rpl_msg("RPL_WELCOME", get_nickname(msg), get_username(msg)));	
     if (send(newServ.getClient(), toSend.c_str(), toSend.size(), 0) < 0) {
         std::cerr << "Send error " << strerror(errno) << std::endl;
         exit(EXIT_FAILURE);
     }
-
     while (octet_recv > 0) {
         std::cout << msg << std::endl;
         if (octet_recv < 0){
@@ -50,7 +50,6 @@ int main(int ac, char **av) {
             break ;
         }
         if (!strncmp(msg, "PING localhost", strlen("PING localhost"))) {
-            std::cout << "fefe" << std::endl;
             std::string pong("PONG localhost");
             send(newServ.getClient(), pong.c_str(), pong.size(), 0);
         }

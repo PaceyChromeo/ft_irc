@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <stdlib.h>
+#include <vector>
 #include "User.hpp"
 #include "Channel.hpp"
 
@@ -32,7 +33,14 @@ class Server{
 				close(_server);
 				exit(EXIT_FAILURE);
 			}
+			FD_ZERO(&_sockets);
+  			FD_SET(_server, &_sockets);
+    		_sockets_cpy = _sockets;
 			_csize = sizeof(_addrClient);
+			if (select(FD_SETSIZE, &_sockets_cpy, NULL, NULL, NULL) < 0){
+				std::cerr << "Select error: " << strerror(errno) << std::endl;
+				exit(1);
+			}
 			if ((_client = accept(_server, (struct sockaddr *) &_addrClient, &_csize)) < 0){
 				std::cerr << "Accept Error : " << strerror(errno) << std::endl;
 				close(_server);
@@ -60,8 +68,9 @@ class Server{
 		int					_server;
 		int					_client;
 		socklen_t			_csize;
-		//ssize_t				_octet_recv;
-		//User*				_users;
+		fd_set				_sockets;
+		fd_set				_sockets_cpy;
+		std::vector<User *>	_users;
 		//Channel*			_channels;
 		
 		Server() {};
