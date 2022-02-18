@@ -33,12 +33,52 @@ int main(int ac, char **av) {
     int port = atoi(av[1]);
 	Server	newServ(port, "toto");
     int client;
-    struct sockaddr_in addrClient;
-	char msg[1000];
-    memset(msg, 0, 1000);
-    while (true) {
-        
+    fd_set current_sockets;
+    fd_set ready_sockets;
+
+    FD_ZERO(&current_sockets);
+    FD_SET(newServ.getServer(), &current_sockets);
+    while (true)
+    {
+        ready_sockets = current_sockets;
+        if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0) {
+            std::cerr << "select errror:" << strerror(errno) << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        for (int i = 0; i < FD_SETSIZE; i++) {
+            if (FD_ISSET(i, &ready_sockets)) {
+                if (i == newServ.getServer()) {
+                    struct sockaddr_in addrClient;
+                    socklen_t csize = sizeof(addrClient);
+                    client = accept(newServ.getServer(),  (struct sockaddr *) &addrClient, &csize);
+                    if (client < 0) {
+                        std::cerr << "Accept error :" << strerror(errno) << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    FD_SET(client, &current_sockets);
+                }
+                else {
+                    char msg[1000];
+                    memset(msg, 0x0, 1000);
+                    size_t bytes_read;
+                    bytes_read = recv(client, msg, 1000, 0);
+                    std::cout << msg << std::endl;
+                    if (bytes_read < 0) {
+                        std::cerr << "recv error:" << strerror(errno) << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    std::string toSend(newServ.get_rpl_msg("RPL_WELCOME", get_nickname(msg), get_username(msg)));
+                    if (send(client, toSend.c_str(), toSend.size(), 0) < 0) {
+                        std::cout << "send error:" << strerror(errno) << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    FD_CLR(i, &current_sockets);
+                }
+            }
+        }
     }
+    
+    
 	close(newServ.getServer());
 	close(client);
     return 0;

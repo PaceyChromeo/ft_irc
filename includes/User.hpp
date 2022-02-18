@@ -6,13 +6,14 @@ class User {
 
 	public:
 
-		User(std::string user, std::string nick, std::string host, bool ope) : _username(user), _nickname(nick), _host(host), _operator(ope) {};
-		User(const User & cpy) : _username(cpy._username), _nickname(cpy._nickname), _operator(cpy._operator) {};
+		User(std::string user, std::string nick, std::string host, std::string mode) : _username(user), _nickname(nick), _host(host), _mode(mode) {};
+		User(const User & cpy) : _username(cpy._username), _nickname(cpy._nickname), _host(cpy._host), _mode(cpy._mode) {};
 		User& operator=(const User & rhs){
 			if (this != &rhs){
 				_username = rhs._username;
 				_nickname = rhs._nickname;
-				_operator = rhs._operator;
+				_host = rhs._host;
+				_mode = rhs._mode;
 			}
 			return (*this);
 		}
@@ -24,12 +25,14 @@ class User {
 		void		setNick(std::string nick) { this->_nickname = nick; }
 		std::string	getHost() const { return this->_host;}
 		void		setHost(std::string host) { this->_host = host; }
+		std::string	getMode() const { return this->_mode;}
+		void		setMode(std::string mode) { this->_mode = mode; }
 
 	private:
 
 		std::string	_username;
 		std::string _nickname;
 		std::string _host;
-		bool		_operator;
-		User() : _username(""), _nickname(""), _operator(false) {};
+		std::string	_mode;
+		User() : _username(""), _nickname(""), _host(""), _mode("") {};
 };

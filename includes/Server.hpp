@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <stdlib.h>
+#include <vector>
 #include "User.hpp"
 #include "Channel.hpp"
 
