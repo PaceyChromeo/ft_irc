@@ -1,4 +1,6 @@
 #include "../includes/Utils.hpp"
+#include <iostream>
+#include <cstring>
 
 void	free_tab(char **tab)
 {
@@ -159,4 +161,20 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	}
 	newstr[i] = '\0';
 	return (newstr);
+}
+
+int	check_recv(char *msg){
+	if (!strncmp(msg, "CAP LS", 5)){
+		return (1);
+	}
+	else if (!strncmp(msg, "MODE ", 5)){
+		return (2);
+	}
+	else if (!strncmp(msg, "JOIN ", 5)){
+		return (3);
+	}
+	else if (!strncmp(msg, "PING ", 5)){
+		return (4);
+	}
+	return (0);
 }

@@ -1,5 +1,5 @@
 CC=clang++
-FLAGS= -Wall -Werror -Wextra -std=c++98
+FLAGS= -Wall -Werror -Wextra -g -std=c++98
 #FLAGS += -g -fsanitize=address
 NAME=ircserv
 ifneq (,$(findstring xterm,${TERM}))
