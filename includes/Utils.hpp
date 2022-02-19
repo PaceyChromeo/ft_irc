@@ -1,12 +1,7 @@
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#pragma once
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <iostream>
 
-char    **ft_split(char const *s, char c);
-char	*ft_substr(char const *s, unsigned int start, size_t len);
-char	*ft_strdup(const char *src);
-void	free_tab(char **tab);
-#endif
+class Server;
+
+std::string	parsing_buf(std::string buf, Server& srv);

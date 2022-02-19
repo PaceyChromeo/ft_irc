@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+class Server;
 class Command{
 
 	public:

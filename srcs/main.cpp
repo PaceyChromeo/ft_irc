@@ -14,7 +14,8 @@ int main(int ac, char **av) {
 						event_fd,
 						connection_fd;
 	std::string			toSend,
-						password(av[2]);
+						password(av[2]),
+						cmd;
 	Server				srv(port, password);
 	struct kevent		change_event[256],
 						event[256];
@@ -54,18 +55,11 @@ int main(int ac, char **av) {
 			else if (event[i].filter & EVFILT_READ){
 				memset(buf, 0, 1024);
 				toSend.clear();
+				cmd.clear();
 				bytes_read = recv(event_fd, buf, sizeof(buf), 0);
 				std::cout << buf << std::endl;
-				std::string toRecv(buf);
-				parsing_buf(toRecv);
-				if ((toRecv.find("NICK") < 1024) && (toRecv.find("USER")) < 1024){
-                    User newUser(srv.get_username(toRecv), srv.get_nickname(toRecv), "localhost", "invisible");
-					srv.addNewUser(newUser);
-					toSend = srv.get_rpl_msg("RPL_WELCOME", toRecv);
-				}
-				else if ((toRecv.find("PING ")) < 1024){
-					toSend = srv.get_rpl_msg("PING", toRecv);
-				}
+				std::string bufRecv(buf);
+				toSend = parsing_buf(bufRecv, srv);
 				if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
 					perror("Send error");
 				}

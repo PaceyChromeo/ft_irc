@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../includes/Utils.hpp"
-#include "../includes/User.hpp"
-#include "../includes/Command.hpp"
+#include "Utils.hpp"
+#include "User.hpp"
+#include "Command.hpp"
 #include "User.hpp"
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,6 +120,18 @@ class Server{
 				_cmd.push_back(cmd_name);
 			}
 		}
+
+		std::string	findCommand(std::string buf) const {
+			std::vector<Command>::const_iterator	it = _cmd.begin();
+			std::vector<Command>::const_iterator	ite = _cmd.end();
+
+			while (it != ite){
+				if (buf.find((*it).getName()) < 1024)
+					return (*it).getName();
+				it++;
+			}
+			return (NULL);
+		};
 
 		~Server() {};
 
