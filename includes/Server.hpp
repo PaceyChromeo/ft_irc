@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../includes/Utils.hpp"
+#include "../includes/User.hpp"
+#include "../includes/Command.hpp"
 #include "User.hpp"
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +17,9 @@
 class Server{
 
 	public:
-		Server(int port, std::string pswd) : _port(port), _password(pswd) {
+		Server(int port, std::string pswd) : _port(port), _password(pswd){
+			createCommandList();
+
 			if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				perror("Error opening socket");
 				exit(EXIT_FAILURE);
@@ -65,33 +69,70 @@ class Server{
 			return (username);
 		}
 
-		std::vector<User *> get_user() const { return _user; }
-		void	addNewUser(User *usr) {
-			std::vector<User *>::iterator it = _user.begin();
-			std::vector<User *>::iterator ite = _user.end();
-			while (it != ite) {
-				std::cout << "NICK USER >>>" << (*it)->getNick() << std::endl;
-				std::cout << "NICK USR >>>" << usr->getNick() << std::endl;
-
-				if (usr->getNick() == (*it)->getNick()) {
-					std::cout << "NICK exist\n";
+		void print_users() const { 
+			std::vector<User>::const_iterator it = _user.begin();
+			std::vector<User>::const_iterator ite = _user.end();
+			int	i = 1;
+			while (it != ite){
+				std::cout << "********** USER n" << i << " ***********\n";
+				std::cout << "_user->nickname: >>>" << (*it).getNick() << std::endl;
+				std::cout << "_user->username: >>>" << (*it).getUser() << std::endl;
+				std::cout << "_user->host: >>>" << (*it).getHost() << std::endl;
+				std::cout << "_user->mode: >>>" << (*it).getMode() << std::endl;
+				std::cout << "******************************\n\n";
+				it++;
+				i++;
+			}
+		}
+		
+		void	addNewUser(User usr) {
+			std::vector<User>::iterator it = _user.begin();
+			std::vector<User>::iterator ite = _user.end();
+			while (it != ite){
+				if ((*it).getNick() == usr.getNick()) {
+					std::cout << "NICK ["<< usr.getNick() << "] already exists\n";
 					return ;
 				}
 				it++;
 			}
-			_user.push_back(usr); 
+			_user.push_back(usr);
+		}
+
+		void	createCommandList(){
+			char		*args[13] = {	(char *)"KICK",
+										(char *)"JOIN",
+										(char *)"ME",
+										(char *)"MODE",
+										(char *)"NICK",
+										(char *)"OPEN",
+										(char *)"PART",
+										(char *)"PASS",
+										(char *)"PING",
+										(char *)"PRIVMSG",
+										(char *)"USER",
+										(char *)"TOPIC",
+										(char *)"WHOIS"};
+
+			std::string	cmd_name;
+
+			for (int i = 0; i < 13; i++){
+				cmd_name = args[i];
+				_cmd.push_back(cmd_name);
+			}
 		}
 
 		~Server() {};
 
-		int		getListen() const { return this->_listen_fd; };
+		int					getListen() const { return this->_listen_fd; };
+		std::vector<User>	getUser() const { return this->_user; };
 
 	private:
-		int					_listen_fd;
-		int					_port;
-		std::string			_password;
-		std::vector<User *>	_user;
-		struct sockaddr_in	_serv_addr;
+		int						_listen_fd;
+		int						_port;
+		std::string				_password;
+		std::vector<User>		_user;
+		std::vector<Command>	_cmd;
+		struct sockaddr_in		_serv_addr;
 		
 		Server() {};
 		Server(const Server& cpy) { (void)cpy; };

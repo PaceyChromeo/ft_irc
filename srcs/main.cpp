@@ -57,14 +57,10 @@ int main(int ac, char **av) {
 				bytes_read = recv(event_fd, buf, sizeof(buf), 0);
 				std::cout << buf << std::endl;
 				std::string toRecv(buf);
+				parsing_buf(toRecv);
 				if ((toRecv.find("NICK") < 1024) && (toRecv.find("USER")) < 1024){
                     User newUser(srv.get_username(toRecv), srv.get_nickname(toRecv), "localhost", "invisible");
-                    srv.addNewUser(&newUser);
-                    //std::vector<User *>::iterator it = srv.get_user().begin();
-                    int k = 0;
-                    k++;
-                    for (int i = 0; i < k; i++)
-                        std::cout << "NICK :" << srv.get_user()[i]->getNick() << std::endl;
+					srv.addNewUser(newUser);
 					toSend = srv.get_rpl_msg("RPL_WELCOME", toRecv);
 				}
 				else if ((toRecv.find("PING ")) < 1024){

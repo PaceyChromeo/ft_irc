@@ -163,18 +163,6 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	return (newstr);
 }
 
-int	check_recv(char *msg){
-	if (!strncmp(msg, "CAP LS", 5)){
-		return (1);
-	}
-	else if (!strncmp(msg, "MODE ", 5)){
-		return (2);
-	}
-	else if (!strncmp(msg, "JOIN ", 5)){
-		return (3);
-	}
-	else if (!strncmp(msg, "PING ", 5)){
-		return (4);
-	}
-	return (0);
+void	parsing_buf(std::string buf){
+
 }
