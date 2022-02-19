@@ -6,6 +6,7 @@ class User {
 
 	public:
 
+		User() : _username(""), _nickname(""), _host("localhost"), _mode("invisible") {};
 		User(std::string user, std::string nick, std::string host, std::string mode) : _username(user), _nickname(nick), _host(host), _mode(mode) {};
 		User(const User & cpy) : _username(cpy._username), _nickname(cpy._nickname), _host(cpy._host), _mode(cpy._mode) {};
 		User& operator=(const User & rhs){
@@ -34,5 +35,4 @@ class User {
 		std::string _nickname;
 		std::string _host;
 		std::string	_mode;
-		User() : _username(""), _nickname(""), _host(""), _mode("") {};
 };

@@ -1,19 +1,29 @@
 #pragma once
 
-#include "Utils.hpp"
 #include "User.hpp"
 #include "Command.hpp"
 #include "User.hpp"
-#include <stdio.h>
-#include <stdlib.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/event.h>
-#include <string.h>
-#include <unistd.h>
 #include <iostream>
 #include <vector>
 
+enum e_cmd {	KICK,
+				JOIN,
+				ME,
+				MODE,
+				NICK,
+				OPEN,
+				PART,
+				PASS,
+				PING,
+				PRIVMSG,
+				QUIT,
+				USER,
+				TOPIC,
+				WHOIS };
 class Server{
 
 	public:
@@ -42,18 +52,24 @@ class Server{
 			
 		};
 
-		std::string get_rpl_msg(std::string protocol, std::string buf) {
+		std::string get_rpl_msg(std::string protocol, User& user) const {
 			if (protocol == "RPL_WELCOME"){
-				return (std::string("001 " + get_nickname(buf) + "\n\"Welcome to the Internet Relay Chat Network\"\n" + get_nickname(buf) + "!" + get_username(buf) + "@" + "localhost" + "\""));
+				return (std::string("001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + "localhost" + "\""));
 			}
 			else if (protocol == "PING"){
 				return (std::string("PONG localhost"));
 			}
+			else if (protocol == "ERR_NICKNAMEINUSE"){
+				return (std::string("433 *\n" + user.getNick() + " : Nick already in use.\n"));
+			}
+			else if (protocol == "WHOIS"){
+				return (std::string("311 \n\"" + user.getNick() + user.getUser() + "localhost" + " * :"+ "pjacob\"\n"));
+			}
 			else
-				return 0;
+				return (0);
 		}
 
-		std::string get_nickname(std::string nick){
+		std::string get_nickname(std::string nick) const{
 			int			find = nick.find("NICK ");
 			int			find_endl = nick.substr(find + 5, nick.size()).find("\n");
 			std::string	nickname = nick.substr(find + 5, find_endl);
@@ -62,7 +78,7 @@ class Server{
 			return (nickname);
 		}
 
-		std::string get_username(std::string user){
+		std::string get_username(std::string user) const{
 			int			find = user.find("USER ");
 			int			find_space = user.substr(find + 5, user.size()).find(" ");
 			std::string	username = user.substr(find + 5, find_space);
@@ -85,21 +101,23 @@ class Server{
 			}
 		}
 		
-		void	addNewUser(User usr) {
+		int	addNewUser(User& usr) {
 			std::vector<User>::iterator it = _user.begin();
 			std::vector<User>::iterator ite = _user.end();
+
 			while (it != ite){
 				if ((*it).getNick() == usr.getNick()) {
 					std::cout << "NICK ["<< usr.getNick() << "] already exists\n";
-					return ;
+					return (0);
 				}
 				it++;
 			}
 			_user.push_back(usr);
+			return (1);
 		}
 
 		void	createCommandList(){
-			char		*args[13] = {	(char *)"KICK",
+			char		*args[14] = {	(char *)"KICK",
 										(char *)"JOIN",
 										(char *)"ME",
 										(char *)"MODE",
@@ -109,29 +127,88 @@ class Server{
 										(char *)"PASS",
 										(char *)"PING",
 										(char *)"PRIVMSG",
+										(char *)"QUIT",
 										(char *)"USER",
 										(char *)"TOPIC",
 										(char *)"WHOIS"};
-
 			std::string	cmd_name;
 
-			for (int i = 0; i < 13; i++){
+			for (int i = 0; i < 14; i++){
 				cmd_name = args[i];
 				_cmd.push_back(cmd_name);
 			}
 		}
 
-		std::string	findCommand(std::string buf) const {
+		int	findCommand(std::string buf) const {
 			std::vector<Command>::const_iterator	it = _cmd.begin();
 			std::vector<Command>::const_iterator	ite = _cmd.end();
+			int i = 0;
 
 			while (it != ite){
 				if (buf.find((*it).getName()) < 1024)
-					return (*it).getName();
+					return (i);
 				it++;
+				i++;
 			}
-			return (NULL);
-		};
+			return (-1);
+		}
+
+		std::string	performCommand(int cmd_nbr, std::string buf) {
+			std::string toSend("");
+			User		newUser;
+
+			if ((buf.find("NICK")) < 1024 && (buf.find("USER")) < 1024){
+				newUser.setNick(get_nickname(buf));
+				newUser.setUser(get_username(buf));
+				if (addNewUser(newUser))
+					toSend = get_rpl_msg("RPL_WELCOME", newUser);
+				else
+					toSend = get_rpl_msg("ERR_NICKNAMEINUSE", newUser);
+			}
+			else if (cmd_nbr == KICK){
+
+			}
+			else if (cmd_nbr == JOIN){
+				
+			}
+			else if (cmd_nbr == ME){
+				
+			}
+			else if (cmd_nbr == MODE){
+				
+			}
+			else if (cmd_nbr == NICK){
+
+			}
+			else if (cmd_nbr == OPEN){
+				
+			}
+			else if (cmd_nbr == PART){
+				
+			}
+			else if (cmd_nbr == PASS){
+				
+			}
+			else if (cmd_nbr == PING){
+				toSend = get_rpl_msg("PING", newUser);
+			}
+			else if (cmd_nbr == PRIVMSG){
+
+			}
+			else if (cmd_nbr == QUIT){
+				
+			}
+			else if (cmd_nbr == USER){
+				
+			}
+			else if (cmd_nbr == TOPIC){
+				
+			}
+			else if (cmd_nbr == WHOIS){
+				toSend = get_rpl_msg("WHOIS", newUser);
+			}
+			return (toSend);
+		}
 
 		~Server() {};
 

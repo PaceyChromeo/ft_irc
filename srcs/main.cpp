@@ -1,4 +1,3 @@
-
 #include "../includes/Server.hpp"
 
 int main(int ac, char **av) {
@@ -12,10 +11,11 @@ int main(int ac, char **av) {
 						kq,
 						new_event,
 						event_fd,
-						connection_fd;
+						connection_fd,
+						cmd;
 	std::string			toSend,
 						password(av[2]),
-						cmd;
+						bufRecv;
 	Server				srv(port, password);
 	struct kevent		change_event[256],
 						event[256];
@@ -55,13 +55,18 @@ int main(int ac, char **av) {
 			else if (event[i].filter & EVFILT_READ){
 				memset(buf, 0, 1024);
 				toSend.clear();
-				cmd.clear();
+				bufRecv.clear();
 				bytes_read = recv(event_fd, buf, sizeof(buf), 0);
 				std::cout << buf << std::endl;
-				std::string bufRecv(buf);
-				toSend = parsing_buf(bufRecv, srv);
-				if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
-					perror("Send error");
+				bufRecv = static_cast<std::string>(buf);
+				cmd = srv.findCommand(bufRecv);
+				if (cmd < 0)
+					std::cout << "Command not found\n";
+				else{
+					toSend = srv.performCommand(cmd, buf);
+					if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
+						perror("Send error");
+					}
 				}
 			}
 		}
