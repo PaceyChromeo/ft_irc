@@ -3,6 +3,7 @@
 #include "../includes/Utils.hpp"
 #include <string.h>
 #include <string>
+#include <poll.h>
 
 std::string get_nickname(char *msg) {
 
@@ -33,29 +34,37 @@ int main(int ac, char **av) {
     int port = atoi(av[1]);
 	Server	newServ(port, "toto");
     int client;
-    fd_set current_sockets;
-    fd_set ready_sockets;
-
-    FD_ZERO(&current_sockets);
-    FD_SET(newServ.getServer(), &current_sockets);
+    // fd_set current_sockets;
+    // fd_set ready_sockets;
+    // FD_ZERO(&current_sockets);
+    // FD_SET(newServ.getServer(), &current_sockets);
+    nfds_t nfds = 0;
+    int maxfds = 0;
+    int numsfds = 0;
+    struct pollfd *pollfds;
+    pollfds = (struct pollfd*)malloc(sizeof(struct pollfd) * newServ.getServer());
+    maxfds = newServ.getServer();
     while (true)
     {
         ready_sockets = current_sockets;
-        if (select(FD_SETSIZE, &ready_sockets, nullptr, nullptr, nullptr) < 0) {
+        if (select(max_sock + 1, &ready_sockets, nullptr, nullptr, nullptr) < 0) {
             std::cerr << "select errror:" << strerror(errno) << std::endl;
             exit(EXIT_FAILURE);
         }
-        for (int i = 0; i < FD_SETSIZE; i++) {
+        for (int i = 0; i < max_sock + 1; i++) {
             if (FD_ISSET(i, &ready_sockets)) {
                 if (i == newServ.getServer()) {
                     struct sockaddr_in addrClient;
                     socklen_t csize = sizeof(addrClient);
                     client = accept(newServ.getServer(),  (struct sockaddr *) &addrClient, &csize);
                     if (client < 0) {
-                        std::cerr << "Accept error :" << strerror(errno) << std::endl;
+                        std::cerr << "Accept error:" << strerror(errno) << std::endl;
                         exit(EXIT_FAILURE);
                     }
                     FD_SET(client, &current_sockets);
+                    if (max_sock < client) {
+                        max_sock = client;
+                    }
                 }
                 else {
                     char msg[1000];
@@ -67,16 +76,18 @@ int main(int ac, char **av) {
                         std::cerr << "recv error:" << strerror(errno) << std::endl;
                         exit(EXIT_FAILURE);
                     }
-                    std::string toSend(newServ.get_rpl_msg("RPL_WELCOME", get_nickname(msg), get_username(msg)));
-                    if (send(client, toSend.c_str(), toSend.size(), 0) < 0) {
-                        std::cout << "send error:" << strerror(errno) << std::endl;
-                        exit(EXIT_FAILURE);
+                    if (!strncmp(msg, "CAP LS", strlen("CAP LS"))) {
+                        std::string toSend(newServ.get_rpl_msg("RPL_WELCOME", get_nickname(msg), get_username(msg)));
+                        if (send(client, toSend.c_str(), toSend.size(), 0) < 0) {
+                            std::cout << "send error:" << strerror(errno) << std::endl;
+                            exit(EXIT_FAILURE);
+                        }
                     }
-                    FD_CLR(i, &current_sockets);
                 }
             }
         }
     }
+    FD_CLR(FD_SETSIZE, &current_sockets);
     
     
 	close(newServ.getServer());
