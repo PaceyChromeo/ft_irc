@@ -1,66 +1,77 @@
 #pragma once
 
-#include <iostream>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <cstring>
+#include "../includes/Utils.hpp"
+#include <stdio.h>
 #include <stdlib.h>
-#include <vector>
-#include "User.hpp"
-#include "Channel.hpp"
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/event.h>
+#include <string.h>
+#include <unistd.h>
+#include <iostream>
 
 class Server{
 
 	public:
 		Server(int port, std::string pswd) : _port(port), _password(pswd) {
-			if ((_server = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-				std::cerr << "Socket error: " << strerror(errno) << std::endl;
+			if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+				perror("Error opening socket");
 				exit(EXIT_FAILURE);
 			}
-			_addrServer.sin_family = AF_INET;
-    		_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
-    		_addrServer.sin_port = htons(_port);
-    		if ((bind(_server, (const struct sockaddr *) &_addrServer, sizeof(_addrServer))) < 0){
-				std::cerr << "Bind Error : " << strerror(errno) << std::endl;
-				close(_server);
+
+			memset(&_serv_addr, 0, sizeof(_serv_addr));
+			_serv_addr.sin_family = AF_INET;
+    		_serv_addr.sin_addr.s_addr = INADDR_ANY;
+    		_serv_addr.sin_port = htons(_port);
+
+    		if ((bind(_listen_fd, (const struct sockaddr *)&_serv_addr, sizeof(_serv_addr))) < 0){
+				perror("Error binding socket");
 				exit(EXIT_FAILURE);
 			}
-    		if ((listen(_server, 30)) < 0){
-				std::cerr << "Listen error : " << strerror(errno) << std::endl;
-				close(_server);
+
+    		if ((listen(_listen_fd, 30)) < 0){
+				perror("Listen error");
 				exit(EXIT_FAILURE);
 			}
+			
 		};
-		std::string get_rpl_msg(std::string protocol, std::string nickname, std::string username) {
+
+		std::string get_rpl_msg(std::string protocol, std::string buf) {
 			if (protocol == "RPL_WELCOME"){
-				std::string toSend = "001 " + nickname + "\n\"Welcome to the Internet Relay Chat Network\"\n" + nickname + "!" + username + "@" + "localhost" + "\"";
-			return (toSend);
+				return (std::string("001 " + get_nickname(buf) + "\n\"Welcome to the Internet Relay Chat Network\"\n" + get_nickname(buf) + "!" + get_username(buf) + "@" + "localhost" + "\""));
+			}
+			else if (protocol == "PING"){
+				return (std::string("PONG localhost"));
 			}
 			else
 				return 0;
 		}
 
+		std::string get_nickname(std::string nick){
+			int			find = nick.find("NICK ");
+			int			find_endl = nick.substr(find + 5, nick.size()).find("\n");
+			std::string	nickname = nick.substr(find + 5, find_endl);
+			
+			nickname.erase(nickname.size() - 1);
+			return (nickname);
+		}
+
+		std::string get_username(std::string user){
+			int			find = user.find("USER ");
+			int			find_space = user.substr(find + 5, user.size()).find(" ");
+			std::string	username = user.substr(find + 5, find_space);
+			return (username);
+		}
+
 		~Server() {};
 
-		int		getServer() const { return this->_server; };
-		//int		getClient() const { return this->_client; };
-		void	setServer(int serv) { this->_server = serv; };
-		//void	setClient(int cli) { this->_client = cli; };
+		int		getListen() const { return this->_listen_fd; };
 
 	private:
+		int					_listen_fd;
 		int					_port;
 		std::string			_password;
-		struct sockaddr_in	_addrServer;
-    	//struct sockaddr_in	_addrClient;
-		int					_server;
-		//int					_client;
-		//socklen_t			_csize;
-		//ssize_t				_octet_recv;
-		//User*				_users;
-		//Channel*			_channels;
+		struct sockaddr_in	_serv_addr;
 		
 		Server() {};
 		Server(const Server& cpy) { (void)cpy; };
