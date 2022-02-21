@@ -31,7 +31,7 @@ int main(int ac, char **av) {
 			perror("kevent");
 			exit(EXIT_FAILURE);
 	}
-
+	srv.createChannels();
 	while (true){
 		if ((new_event = kevent(kq, NULL, 0, event, 1, NULL)) < 0){
 			perror("kevent");
@@ -53,6 +53,7 @@ int main(int ac, char **av) {
 				}
 			}
 			else if (event[i].filter & EVFILT_READ){
+
 				memset(buf, 0, 1024);
 				toSend.clear();
 				bufRecv.clear();
@@ -62,8 +63,8 @@ int main(int ac, char **av) {
 				cmd = srv.findCommand(bufRecv);
 				if (cmd < 0)
 					std::cout << "Command not found\n";
-				else{
-					toSend = srv.performCommand(cmd, buf, connection_fd);
+				else {
+					toSend = srv.performCommand(cmd, buf, connection_fd, event_fd);
 					if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
 						perror("Send error");
 					}
