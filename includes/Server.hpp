@@ -1,7 +1,7 @@
 #pragma once
 
 #include "User.hpp"
-#include "User.hpp"
+#include "Channel.hpp"
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -125,20 +125,28 @@ class Server{
 			return (1);
 		}
 
-		int	findUser(int fd) const {
-			std::vector<User>::const_iterator	it = _user.begin();
-			std::vector<User>::const_iterator	ite = _user.end();
-			int i = 0;
+		void	createChannels() {
+			_channel.push_back(Channel("lobby"));
+			_channel.push_back(Channel("toto"));
+			_channel.push_back(Channel("mago"));
 
-			while (it != ite){
-				if ((*it).getFd() == fd){
-					return (i);
-				}
-				it++;
-				i++;
-			}
-			return (-1);
+			
 		}
+
+		int    findUser(int fd) const {
+            std::vector<User>::const_iterator    it = _user.begin();
+            std::vector<User>::const_iterator    ite = _user.end();
+            int i = 0;
+
+            while (it != ite){
+                if ((*it).getFd() == fd){
+                    return (i);
+                }
+                it++;
+                i++;
+            }
+            return (-1);
+        }
 
 		int	removeUser(int fd){
 			std::vector<User>::const_iterator	it = _user.begin();
@@ -153,7 +161,44 @@ class Server{
 				it++;
 				i++;
 			}
-			return (-1);	
+			return (-1);
+		}
+
+		int findChannel(std::string name) {
+
+			std::vector<Channel>::iterator it = _channel.begin();
+			std::vector<Channel>::iterator ite = _channel.end();
+
+			int i = 0;
+			while (it != ite) {
+				if ((*it).get_channel_name() == name) {
+					std::cout << "CHANNEL [" << name << "] already exists\n";
+					return (i);
+				}
+				it++;
+				i++;
+			}
+			return (-1);
+		}
+
+
+		int	addNewChannel(std::string name, User &user) {
+
+			if (findChannel(name) == -1) {
+				Channel chan(name);
+				User newuser(user);
+				chan.set_user(newuser);
+				_channel.push_back(chan);
+				return 0;
+			}
+			return 1;
+		}
+
+		int addToChannel(std::string name, User &user) {
+
+			int i = findChannel(name);
+			_channel[i].set_user(user);
+			return 0;
 		}
 
 		int	findCommand(std::string buf) const {
@@ -173,7 +218,6 @@ class Server{
 										(char *)"WHOIS"};
 			std::string	cmd_name;
 			int i = 0;
-
 			while (i < 14){
 				cmd_name = args[i];
 				if (buf.find(cmd_name) < 1024)
@@ -183,7 +227,7 @@ class Server{
 			return (-1);
 		}
 
-		std::string	performCommand(int cmd_nbr, std::string buf, int fd) {
+		std::string	performCommand(int cmd_nbr, std::string buf, int fd, int event_fd) {
 			std::string toSend("");
 
 			if ((buf.find("NICK")) < 1024 && (buf.find("USER")) < 1024){
@@ -201,7 +245,16 @@ class Server{
 
 			}
 			else if (cmd_nbr == JOIN) {
-				
+				std::cout << "buf:" << buf << std::endl;
+				// int start = buf.find("#") + 1;
+				// int endl = buf.find("\n") - 2;
+				std::string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
+				chan_name.erase(chan_name.size() - 2);
+				std::cout << chan_name << std::endl;
+				int fd = findUser(event_fd);
+				if (addNewChannel(chan_name, _user[fd])) {
+					addToChannel(chan_name, _user[fd]);
+				}
 			}
 			else if (cmd_nbr == ME){
 				
@@ -253,6 +306,7 @@ class Server{
 		int						_port;
 		std::string				_password;
 		std::vector<User>		_user;
+		std::vector<Channel>	_channel;
 		struct sockaddr_in		_serv_addr;
 		
 		Server() {};

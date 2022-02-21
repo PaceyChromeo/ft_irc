@@ -30,7 +30,7 @@ int main(int ac, char **av) {
 			perror("kevent");
 			exit(EXIT_FAILURE);
 	}
-
+	srv.createChannels();
 	while (true){
 		if ((new_event = kevent(kq, NULL, 0, event, 1, NULL)) < 0){
 			perror("kevent");
@@ -52,6 +52,7 @@ int main(int ac, char **av) {
 				}
 			}
 			else if (event[i].filter & EVFILT_READ){
+
 				memset(buf, 0, 1024);
 				bufRecv.clear();
 				toSend.clear();
