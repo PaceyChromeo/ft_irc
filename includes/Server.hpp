@@ -1,7 +1,6 @@
 #pragma once
 
 #include "User.hpp"
-#include "Command.hpp"
 #include "User.hpp"
 #include <unistd.h>
 #include <netinet/in.h>
@@ -28,7 +27,6 @@ class Server{
 
 	public:
 		Server(int port, std::string pswd) : _port(port), _password(pswd){
-			createCommandList();
 
 			if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				perror("Error opening socket");
@@ -116,7 +114,8 @@ class Server{
 			return (1);
 		}
 
-		void	createCommandList(){
+
+		int	findCommand(std::string buf) const {
 			char		*args[14] = {	(char *)"KICK",
 										(char *)"JOIN",
 										(char *)"ME",
@@ -133,33 +132,25 @@ class Server{
 										(char *)"WHOIS"};
 			std::string	cmd_name;
 
-			for (int i = 0; i < 14; i++){
-				cmd_name = args[i];
-				_cmd.push_back(cmd_name);
-			}
-		}
-
-		int	findCommand(std::string buf) const {
-			std::vector<Command>::const_iterator	it = _cmd.begin();
-			std::vector<Command>::const_iterator	ite = _cmd.end();
 			int i = 0;
 
-			while (it != ite){
-				if (buf.find((*it).getName()) < 1024)
+			while (i < 14){
+				cmd_name = args[i];
+				if (buf.find(cmd_name) < 1024)
 					return (i);
-				it++;
 				i++;
 			}
 			return (-1);
 		}
 
-		std::string	performCommand(int cmd_nbr, std::string buf) {
+		std::string	performCommand(int cmd_nbr, std::string buf, int fd) {
 			std::string toSend("");
 			User		newUser;
 
 			if ((buf.find("NICK")) < 1024 && (buf.find("USER")) < 1024){
 				newUser.setNick(get_nickname(buf));
 				newUser.setUser(get_username(buf));
+				newUser.setUserfd(fd);
 				if (addNewUser(newUser))
 					toSend = get_rpl_msg("RPL_WELCOME", newUser);
 				else
@@ -168,7 +159,7 @@ class Server{
 			else if (cmd_nbr == KICK){
 
 			}
-			else if (cmd_nbr == JOIN){
+			else if (cmd_nbr == JOIN) {
 				
 			}
 			else if (cmd_nbr == ME){
@@ -220,7 +211,6 @@ class Server{
 		int						_port;
 		std::string				_password;
 		std::vector<User>		_user;
-		std::vector<Command>	_cmd;
 		struct sockaddr_in		_serv_addr;
 		
 		Server() {};

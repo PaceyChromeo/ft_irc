@@ -6,8 +6,8 @@ class User {
 
 	public:
 
-		User() : _username(""), _nickname(""), _host("localhost"), _mode("invisible") {};
-		User(std::string user, std::string nick, std::string host, std::string mode) : _username(user), _nickname(nick), _host(host), _mode(mode) {};
+		User() : _username(""), _nickname(""), _host("localhost"), _mode("invisible"), _fd(0) {};
+		User(std::string user, std::string nick, std::string host, std::string mode, int fd) : _username(user), _nickname(nick), _host(host), _mode(mode), _fd(fd) {};
 		User(const User & cpy) : _username(cpy._username), _nickname(cpy._nickname), _host(cpy._host), _mode(cpy._mode) {};
 		User& operator=(const User & rhs){
 			if (this != &rhs){
@@ -28,6 +28,7 @@ class User {
 		void		setHost(std::string host) { this->_host = host; }
 		std::string	getMode() const { return this->_mode;}
 		void		setMode(std::string mode) { this->_mode = mode; }
+		void		setUserfd(int fd) { this->_fd = fd; }
 
 	private:
 
@@ -35,4 +36,5 @@ class User {
 		std::string _nickname;
 		std::string _host;
 		std::string	_mode;
+		int 		_fd;
 };

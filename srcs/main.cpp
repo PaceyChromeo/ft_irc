@@ -63,7 +63,7 @@ int main(int ac, char **av) {
 				if (cmd < 0)
 					std::cout << "Command not found\n";
 				else{
-					toSend = srv.performCommand(cmd, buf);
+					toSend = srv.performCommand(cmd, buf, connection_fd);
 					if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
 						perror("Send error");
 					}
