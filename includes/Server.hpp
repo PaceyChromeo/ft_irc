@@ -23,6 +23,9 @@ enum e_cmd {	KICK,
 				USER,
 				TOPIC,
 				WHOIS };
+
+using namespace std;
+
 class Server{
 
 	public:
@@ -50,18 +53,18 @@ class Server{
 			
 		};
 
-		std::string get_rpl_msg(std::string protocol, User& user) const {
+		std::string get_rpl_msg(std::string protocol, const User& user) const {
 			if (protocol == "RPL_WELCOME"){
-				return (std::string("001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + "localhost" + "\""));
+				return (std::string("001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\""));
 			}
 			else if (protocol == "PING"){
-				return (std::string("PONG localhost"));
+				return (std::string("PONG " + user.getHost()));
 			}
 			else if (protocol == "ERR_NICKNAMEINUSE"){
 				return (std::string("433 *\n" + user.getNick() + " : Nick already in use.\n"));
 			}
 			else if (protocol == "WHOIS"){
-				return (std::string("311 \n\"" + user.getNick() + user.getUser() + "localhost" + " * :"+ "pjacob\"\n"));
+				return (std::string("311 " + user.getNick() + "\n\"" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\"\n"));
 			}
 			else
 				return (0);
@@ -70,8 +73,7 @@ class Server{
 		std::string get_nickname(std::string nick) const{
 			int			find = nick.find("NICK ");
 			int			find_endl = nick.substr(find + 5, nick.size()).find("\n");
-			std::string	nickname = nick.substr(find + 5, find_endl);
-			
+			std::string	nickname = nick.substr(find + 5, find_endl);			
 			nickname.erase(nickname.size() - 1);
 			return (nickname);
 		}
@@ -83,16 +85,25 @@ class Server{
 			return (username);
 		}
 
+		std::string get_realname(std::string real) const{
+			int			find = real.find(":");
+			int			find_endl = real.substr(find + 1, real.size()).find("\n");
+			std::string	realname = real.substr(find + 1, find_endl);
+			realname.erase(realname.size() - 1);
+			return (realname);
+		}
+
 		void print_users() const { 
 			std::vector<User>::const_iterator it = _user.begin();
 			std::vector<User>::const_iterator ite = _user.end();
 			int	i = 1;
 			while (it != ite){
 				std::cout << "********** USER n" << i << " ***********\n";
-				std::cout << "_user->nickname: >>>" << (*it).getNick() << std::endl;
-				std::cout << "_user->username: >>>" << (*it).getUser() << std::endl;
-				std::cout << "_user->host: >>>" << (*it).getHost() << std::endl;
-				std::cout << "_user->mode: >>>" << (*it).getMode() << std::endl;
+				std::cout << "_user->nickname: >>> " << (*it).getNick() << std::endl;
+				std::cout << "_user->username: >>> " << (*it).getUser() << std::endl;
+				std::cout << "_user->host: >>> " << (*it).getHost() << std::endl;
+				std::cout << "_user->mode: >>> " << (*it).getMode() << std::endl;
+				std::cout << "_user->fd: >>> " << (*it).getFd() << std::endl;
 				std::cout << "******************************\n\n";
 				it++;
 				i++;
@@ -114,6 +125,36 @@ class Server{
 			return (1);
 		}
 
+		int	findUser(int fd) const {
+			std::vector<User>::const_iterator	it = _user.begin();
+			std::vector<User>::const_iterator	ite = _user.end();
+			int i = 0;
+
+			while (it != ite){
+				if ((*it).getFd() == fd){
+					return (i);
+				}
+				it++;
+				i++;
+			}
+			return (-1);
+		}
+
+		int	removeUser(int fd){
+			std::vector<User>::const_iterator	it = _user.begin();
+			std::vector<User>::const_iterator	ite = _user.end();
+			int i = 0;
+
+			while (it != ite){
+				if ((*it).getFd() == fd){
+					_user.erase(it);
+					return (i);
+				}
+				it++;
+				i++;
+			}
+			return (-1);	
+		}
 
 		int	findCommand(std::string buf) const {
 			char		*args[14] = {	(char *)"KICK",
@@ -131,7 +172,6 @@ class Server{
 										(char *)"TOPIC",
 										(char *)"WHOIS"};
 			std::string	cmd_name;
-
 			int i = 0;
 
 			while (i < 14){
@@ -145,16 +185,17 @@ class Server{
 
 		std::string	performCommand(int cmd_nbr, std::string buf, int fd) {
 			std::string toSend("");
-			User		newUser;
 
 			if ((buf.find("NICK")) < 1024 && (buf.find("USER")) < 1024){
-				newUser.setNick(get_nickname(buf));
-				newUser.setUser(get_username(buf));
-				newUser.setUserfd(fd);
+				User		newUser(get_username(buf), get_nickname(buf), get_realname(buf), "localhost", "invisible", fd);
 				if (addNewUser(newUser))
 					toSend = get_rpl_msg("RPL_WELCOME", newUser);
-				else
+				else{
 					toSend = get_rpl_msg("ERR_NICKNAMEINUSE", newUser);
+					removeUser(fd)
+					close(fd);
+				}
+				print_users();
 			}
 			else if (cmd_nbr == KICK){
 
@@ -181,7 +222,7 @@ class Server{
 				
 			}
 			else if (cmd_nbr == PING){
-				toSend = get_rpl_msg("PING", newUser);
+				toSend = get_rpl_msg("PING", _user[findUser(fd)]);
 			}
 			else if (cmd_nbr == PRIVMSG){
 
@@ -196,7 +237,8 @@ class Server{
 				
 			}
 			else if (cmd_nbr == WHOIS){
-				toSend = get_rpl_msg("WHOIS", newUser);
+				toSend = get_rpl_msg("WHOIS", _user[findUser(fd)]);
+				cout << "to Send: " << toSend << endl;
 			}
 			return (toSend);
 		}

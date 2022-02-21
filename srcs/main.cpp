@@ -13,9 +13,9 @@ int main(int ac, char **av) {
 						event_fd,
 						connection_fd,
 						cmd;
-	std::string			toSend,
-						password(av[2]),
-						bufRecv;
+	std::string			password(av[2]),
+						bufRecv,
+						toSend;
 	Server				srv(port, password);
 	struct kevent		change_event[256],
 						event[256];
@@ -24,7 +24,6 @@ int main(int ac, char **av) {
 	size_t				bytes_read;
 
 	client_len = sizeof(client_addr);
-	memset(buf, 0, 1024);
 	kq = kqueue();
 	EV_SET(change_event, srv.getListen(), EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
 	if (kevent(kq, change_event, 1, NULL, 0, NULL) < 0){
@@ -54,8 +53,8 @@ int main(int ac, char **av) {
 			}
 			else if (event[i].filter & EVFILT_READ){
 				memset(buf, 0, 1024);
-				toSend.clear();
 				bufRecv.clear();
+				toSend.clear();
 				bytes_read = recv(event_fd, buf, sizeof(buf), 0);
 				std::cout << buf << std::endl;
 				bufRecv = static_cast<std::string>(buf);
@@ -64,8 +63,10 @@ int main(int ac, char **av) {
 					std::cout << "Command not found\n";
 				else{
 					toSend = srv.performCommand(cmd, buf, connection_fd);
-					if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
-						perror("Send error");
+					if (!toSend.empty()){
+						if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
+							perror("Send error");
+						}
 					}
 				}
 			}
