@@ -6,6 +6,7 @@ void	debugFilters(std::vector<struct kevent> event_list, int len){
 	std::string	filter_name;
 	std::string	flags_name;
 
+	cout << "LEN : " << len << endl;
 	for (int i = 0; i < len; i++){
 		if (event_list[i].filter == -1)
 			filter_name = "READ";
@@ -35,26 +36,26 @@ void	debugFilters(std::vector<struct kevent> event_list, int len){
 	}
 }
 
-void	enable_read(struct kevent event, vector<struct kevent> change_event, int fd){
+void	enable_read(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
 	change_event.push_back(event);
 }
 
-void	enable_write(struct kevent event, vector<struct kevent> change_event, int fd){
+void	enable_write(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_WRITE, EV_ENABLE, 0, 0, 0);
 	change_event.push_back(event);
 	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
 	change_event.push_back(event);
 }
 
-void	disable_write(struct kevent event, vector<struct kevent> change_event, int fd){
+void	disable_write(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_WRITE, EV_DISABLE, 0, 0, 0);
 	change_event.push_back(event);
 	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
 	change_event.push_back(event);
 }
 
-void	accept_connection(struct kevent event, vector<struct kevent> change_event, int fd){
+void	accept_connection(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0 ,0, 0);
 	change_event.push_back(event);
 	EV_SET(&event, fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0 ,0, 0);
@@ -89,8 +90,6 @@ int main(int ac, char **av) {
 	client_len = sizeof(client_addr);
 	kq = kqueue();
 	enable_read(tmp_kevent, change_event, srv.getListen());
-	// EV_SET(&tmp_kevent, srv.getListen(), EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
-	// change_event.push_back(tmp_kevent);
 	event.reserve(256);
 	srv.createChannels();
 	while (true){
@@ -110,25 +109,16 @@ int main(int ac, char **av) {
 					perror("Accept error");
 				}
 				accept_connection(tmp_kevent, change_event, connection_fd);
-				// EV_SET(&tmp_kevent, connection_fd, EVFILT_READ, EV_ADD, 0 ,0, 0);
-				// change_event.push_back(tmp_kevent);
-				// EV_SET(&tmp_kevent, connection_fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0 ,0, 0);
-				// change_event.push_back(tmp_kevent);
-				// EV_SET(&tmp_kevent, connection_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
-				// change_event.push_back(tmp_kevent);
 			}
 			else if (event[i].filter == EVFILT_WRITE){
+				debugFilters(change_event, change_event.size());
 				if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
 					perror("Send error");
 				}
 				disable_write(tmp_kevent, change_event, event_fd);
-				// EV_SET(&tmp_kevent, event_fd, EVFILT_WRITE, EV_DISABLE, 0, 0, 0);
-				// change_event.push_back(tmp_kevent);
-				// EV_SET(&tmp_kevent, event_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
-				// change_event.push_back(tmp_kevent);
 			}
 			else if (event[i].filter == EVFILT_TIMER){
-				debugFilters(event, event.size());
+				debugFilters(change_event, change_event.size());
 				srv.removeUser(event_fd);
 				close(event_fd);
 				std::cout << "You've been kicked out!\n";
@@ -139,20 +129,15 @@ int main(int ac, char **av) {
 				toSend.clear();
 				bytes_read = recv(event_fd, buf, event[i].data, 0);
 				bufRecv = buf;
-				std::cout << "[BEGIN] " << buf << " [END]" << std::endl;
+				cout << "BUFFER : " << bufRecv << endl;
 				cmd = srv.findCommand(bufRecv);
 				if (cmd < 0)
-				 	std::cout << "Command not found\n";
+				 	cout << "Command not found\n";
 				else{
-					cout << "toSend BEFORE: " << toSend << endl;
 					toSend = srv.performCommand(cmd, buf, connection_fd, event_fd);
-					cout << "toSend AFTER: " << toSend << endl;
+					cout << "TOSEND : " << toSend << endl;
 					if (!toSend.empty()){
 						enable_write(tmp_kevent, change_event, event_fd);
-						// EV_SET(&tmp_kevent, event_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, 0);
-						// change_event.push_back(tmp_kevent);
-						// EV_SET(&tmp_kevent, event_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
-						// change_event.push_back(tmp_kevent);
 					}
 				}
 			}

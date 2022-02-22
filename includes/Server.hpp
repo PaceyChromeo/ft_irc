@@ -233,6 +233,7 @@ class Server{
 		std::string	performCommand(int cmd_nbr, std::string buf, int connection_fd, int event_fd) {
 			std::string toSend("");
 
+			cout << " CONNECTION_FD : " << connection_fd << " | EVENT_FD : " << event_fd << endl;
 			if ((buf.find("NICK")) < 1024 && (buf.find("USER")) < 1024){
 				User		newUser(get_username(buf), get_nickname(buf), get_realname(buf), "localhost", "invisible", connection_fd);
 				if (addNewUser(newUser))
