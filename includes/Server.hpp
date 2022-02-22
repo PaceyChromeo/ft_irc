@@ -4,10 +4,13 @@
 #include "Channel.hpp"
 #include <unistd.h>
 #include <netinet/in.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/event.h>
 #include <iostream>
 #include <vector>
+
+#define	KICK_TIME 300
 
 enum e_cmd {	KICK,
 				JOIN,
@@ -29,13 +32,13 @@ using namespace std;
 class Server{
 
 	public:
-		Server(int port, std::string pswd) : _port(port), _password(pswd){
+		Server(int port, std::string pswd) : _port(port), _enable(1), _password(pswd){
 
 			if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				perror("Error opening socket");
 				exit(EXIT_FAILURE);
 			}
-
+			setsockopt(_listen_fd, SOL_SOCKET, SO_REUSEADDR, &_enable, sizeof(int));
 			memset(&_serv_addr, 0, sizeof(_serv_addr));
 			_serv_addr.sin_family = AF_INET;
     		_serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -55,16 +58,16 @@ class Server{
 
 		std::string get_rpl_msg(std::string protocol, const User& user) const {
 			if (protocol == "RPL_WELCOME"){
-				return (std::string("001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\""));
+				return (std::string(":localhost 001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"\r\n"));
 			}
 			else if (protocol == "PING"){
-				return (std::string("PONG " + user.getHost()));
+				return (std::string(":localhost PONG " + user.getHost() + "\r\n"));
 			}
 			else if (protocol == "ERR_NICKNAMEINUSE"){
-				return (std::string("433 *\n" + user.getNick() + " : Nick already in use.\n"));
+				return (std::string(":localhost 433 *\n" + user.getNick() + " : Nick already in use.\r\n"));
 			}
 			else if (protocol == "WHOIS"){
-				return (std::string("311 " + user.getNick() + "\n\"" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\"\n"));
+				return (std::string(":localhost 311 " + user.getNick() + "\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\r\n"));
 			}
 			else
 				return (0);
@@ -86,7 +89,7 @@ class Server{
 		}
 
 		std::string get_realname(std::string real) const{
-			int			find = real.find(":");
+			int			find = real.rfind(":");
 			int			find_endl = real.substr(find + 1, real.size()).find("\n");
 			std::string	realname = real.substr(find + 1, find_endl);
 			realname.erase(realname.size() - 1);
@@ -181,7 +184,6 @@ class Server{
 			return (-1);
 		}
 
-
 		int	addNewChannel(std::string name, User &user) {
 
 			if (findChannel(name) == -1) {
@@ -194,10 +196,11 @@ class Server{
 			return 1;
 		}
 
-		int addToChannel(std::string name, User &user) {
+		int addUserToChannel(std::string name, User &user) {
 
 			int i = findChannel(name);
-			_channel[i].set_user(user);
+			if (i > 0)
+				_channel[i].set_user(user);
 			return 0;
 		}
 
@@ -227,17 +230,17 @@ class Server{
 			return (-1);
 		}
 
-		std::string	performCommand(int cmd_nbr, std::string buf, int fd, int event_fd) {
+		std::string	performCommand(int cmd_nbr, std::string buf, int connection_fd, int event_fd) {
 			std::string toSend("");
 
 			if ((buf.find("NICK")) < 1024 && (buf.find("USER")) < 1024){
-				User		newUser(get_username(buf), get_nickname(buf), get_realname(buf), "localhost", "invisible", fd);
+				User		newUser(get_username(buf), get_nickname(buf), get_realname(buf), "localhost", "invisible", connection_fd);
 				if (addNewUser(newUser))
 					toSend = get_rpl_msg("RPL_WELCOME", newUser);
 				else{
 					toSend = get_rpl_msg("ERR_NICKNAMEINUSE", newUser);
-					removeUser(fd)
-					close(fd);
+					removeUser(connection_fd);
+					close(connection_fd);
 				}
 				print_users();
 			}
@@ -253,7 +256,7 @@ class Server{
 				std::cout << chan_name << std::endl;
 				int fd = findUser(event_fd);
 				if (addNewChannel(chan_name, _user[fd])) {
-					addToChannel(chan_name, _user[fd]);
+					addUserToChannel(chan_name, _user[fd]);
 				}
 			}
 			else if (cmd_nbr == ME){
@@ -275,13 +278,15 @@ class Server{
 				
 			}
 			else if (cmd_nbr == PING){
-				toSend = get_rpl_msg("PING", _user[findUser(fd)]);
+				toSend = get_rpl_msg("PING", _user[findUser(connection_fd)]);
 			}
 			else if (cmd_nbr == PRIVMSG){
 
 			}
 			else if (cmd_nbr == QUIT){
-				
+				int fd = findUser(connection_fd);
+				close(_user[fd].getFd());
+				removeUser(connection_fd);
 			}
 			else if (cmd_nbr == USER){
 				
@@ -290,8 +295,7 @@ class Server{
 				
 			}
 			else if (cmd_nbr == WHOIS){
-				toSend = get_rpl_msg("WHOIS", _user[findUser(fd)]);
-				cout << "to Send: " << toSend << endl;
+				toSend = get_rpl_msg("WHOIS", _user[findUser(connection_fd)]);
 			}
 			return (toSend);
 		}
@@ -304,6 +308,7 @@ class Server{
 	private:
 		int						_listen_fd;
 		int						_port;
+		int						_enable;
 		std::string				_password;
 		std::vector<User>		_user;
 		std::vector<Channel>	_channel;
