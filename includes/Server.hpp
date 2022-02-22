@@ -128,14 +128,6 @@ class Server{
 			return (1);
 		}
 
-		void	createChannels() {
-			_channel.push_back(Channel("lobby"));
-			_channel.push_back(Channel("toto"));
-			_channel.push_back(Channel("mago"));
-
-			
-		}
-
 		int    findUser(int fd) const {
             std::vector<User>::const_iterator    it = _user.begin();
             std::vector<User>::const_iterator    ite = _user.end();
@@ -167,6 +159,14 @@ class Server{
 			return (-1);
 		}
 
+		void	createChannels() {
+			_channel.push_back(Channel("lobby"));
+			_channel.push_back(Channel("toto"));
+			_channel.push_back(Channel("mago"));
+
+			
+		}
+	
 		int findChannel(std::string name) {
 
 			std::vector<Channel>::iterator it = _channel.begin();
@@ -233,23 +233,11 @@ class Server{
 		std::string	performCommand(int cmd_nbr, std::string buf, int connection_fd, int event_fd) {
 			std::string toSend("");
 
-			cout << " CONNECTION_FD : " << connection_fd << " | EVENT_FD : " << event_fd << endl;
-			if ((buf.find("NICK")) < 1024 && (buf.find("USER")) < 1024){
-				User		newUser(get_username(buf), get_nickname(buf), get_realname(buf), "localhost", "invisible", connection_fd);
-				if (addNewUser(newUser))
-					toSend = get_rpl_msg("RPL_WELCOME", newUser);
-				else{
-					toSend = get_rpl_msg("ERR_NICKNAMEINUSE", newUser);
-					removeUser(connection_fd);
-					close(connection_fd);
-				}
-				print_users();
-			}
-			else if (cmd_nbr == KICK){
+			if (cmd_nbr == KICK){
 
 			}
 			else if (cmd_nbr == JOIN) {
-				std::cout << "buf:" << buf << std::endl;
+				std::cout << "buf: " << buf << std::endl;
 				// int start = buf.find("#") + 1;
 				// int endl = buf.find("\n") - 2;
 				std::string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
@@ -267,7 +255,17 @@ class Server{
 				
 			}
 			else if (cmd_nbr == NICK){
-
+				if (buf.find("USER") < 1024){
+					User		newUser(get_username(buf), get_nickname(buf), get_realname(buf), "localhost", "invisible", connection_fd);
+					if (addNewUser(newUser))
+						toSend = get_rpl_msg("RPL_WELCOME", newUser);
+					else{
+						toSend = get_rpl_msg("ERR_NICKNAMEINUSE", newUser);
+					}
+				}
+				else if (buf.find("NICK _\r") < 1024){
+					close(event_fd);
+				}
 			}
 			else if (cmd_nbr == OPEN){
 				
@@ -279,15 +277,15 @@ class Server{
 				
 			}
 			else if (cmd_nbr == PING){
-				toSend = get_rpl_msg("PING", _user[findUser(connection_fd)]);
+				toSend = get_rpl_msg("PING", _user[findUser(event_fd)]);
 			}
 			else if (cmd_nbr == PRIVMSG){
 
 			}
 			else if (cmd_nbr == QUIT){
-				int fd = findUser(connection_fd);
+				int fd = findUser(event_fd);
 				close(_user[fd].getFd());
-				removeUser(connection_fd);
+				removeUser(event_fd);
 			}
 			else if (cmd_nbr == USER){
 				
@@ -296,7 +294,7 @@ class Server{
 				
 			}
 			else if (cmd_nbr == WHOIS){
-				toSend = get_rpl_msg("WHOIS", _user[findUser(connection_fd)]);
+				toSend = get_rpl_msg("WHOIS", _user[findUser(event_fd)]);
 			}
 			return (toSend);
 		}
