@@ -11,6 +11,11 @@
 #include <vector>
 
 #define	KICK_TIME 300
+#define BUF_SIZE 1024
+#define EOL	"\r\n"
+#define MAX_FD 256
+#define YES "YES"
+#define NO "NO"
 
 enum e_cmd {	KICK,
 				JOIN,
@@ -49,7 +54,7 @@ class Server{
 				exit(EXIT_FAILURE);
 			}
 
-    		if ((listen(_listen_fd, 30)) < 0){
+    		if ((listen(_listen_fd, MAX_FD)) < 0){
 				perror("Listen error");
 				exit(EXIT_FAILURE);
 			}
@@ -58,16 +63,16 @@ class Server{
 
 		std::string get_rpl_msg(std::string protocol, const User& user) const {
 			if (protocol == "RPL_WELCOME"){
-				return (std::string(":localhost 001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"\r\n"));
+				return (std::string(":localhost 001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL));
 			}
 			else if (protocol == "PING"){
-				return (std::string(":localhost PONG " + user.getHost() + "\r\n"));
+				return (std::string(":localhost PONG " + user.getHost() + EOL));
 			}
 			else if (protocol == "ERR_NICKNAMEINUSE"){
-				return (std::string(":localhost 433 *\n" + user.getNick() + " : Nick already in use.\r\n"));
+				return (std::string(":localhost 433 *\n" + user.getNick() + " : Nick already in use." + EOL));
 			}
 			else if (protocol == "WHOIS"){
-				return (std::string(":localhost 311 " + user.getNick() + "\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\r\n"));
+				return (std::string(":localhost 311 " + user.getNick() + "*\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + EOL));
 			}
 			else
 				return (0);
@@ -120,6 +125,7 @@ class Server{
 			while (it != ite){
 				if ((*it).getNick() == usr.getNick()) {
 					std::cout << "NICK ["<< usr.getNick() << "] already exists\n";
+					usr.getNick().clear();
 					return (0);
 				}
 				it++;
@@ -216,16 +222,17 @@ class Server{
 										(char *)"PING",
 										(char *)"PRIVMSG",
 										(char *)"QUIT",
-										(char *)"USER",
+										(char *)"userhost",
 										(char *)"TOPIC",
 										(char *)"WHOIS"};
 			std::string	cmd_name;
 			int i = 0;
 			while (i < 14){
 				cmd_name = args[i];
-				if (buf.find(cmd_name) < 1024)
+				if (buf.find(cmd_name) < BUF_SIZE)
 					return (i);
 				i++;
+				cmd_name.clear();
 			}
 			return (-1);
 		}
@@ -255,16 +262,22 @@ class Server{
 				
 			}
 			else if (cmd_nbr == NICK){
-				if (buf.find("USER") < 1024){
-					User		newUser(get_username(buf), get_nickname(buf), get_realname(buf), "localhost", "invisible", connection_fd);
+				int fd = findUser(event_fd);
+				std::string newNick = get_nickname(buf);
+
+				if (buf.find("USER") < BUF_SIZE){
+					User		newUser(get_nickname(buf), get_username(buf), get_realname(buf), "localhost", "invisible", connection_fd);
 					if (addNewUser(newUser))
 						toSend = get_rpl_msg("RPL_WELCOME", newUser);
 					else{
 						toSend = get_rpl_msg("ERR_NICKNAMEINUSE", newUser);
 					}
 				}
-				else if (buf.find("NICK _\r") < 1024){
-					close(event_fd);
+				else if (_user[fd].getNick() == newNick)
+					return ("");
+				else{
+					_user[fd].setNick(newNick);
+					toSend = "You're now known as " + newNick + EOL;
 				}
 			}
 			else if (cmd_nbr == OPEN){
@@ -284,11 +297,32 @@ class Server{
 			}
 			else if (cmd_nbr == QUIT){
 				int fd = findUser(event_fd);
+
 				close(_user[fd].getFd());
 				removeUser(event_fd);
 			}
 			else if (cmd_nbr == USER){
-				
+				if (buf.find(" ") < BUF_SIZE){
+					size_t pos = buf.find(" ");
+					size_t next_pos = buf.find(" ", pos + 1);
+					vector<string> newUser;
+					string tmp = buf;
+
+					if (next_pos != string::npos){
+						tmp.substr(pos + 1, next_pos - (pos + 1));
+						newUser.push_back(tmp);
+						pos = next_pos;
+						next_pos = buf.find(" ", pos + 1);
+						toSend = newUser[1];
+					}
+					else{
+						tmp.substr(pos + 1);
+						toSend = tmp;
+					}
+				}
+				else{
+					toSend = "USERHOST not enough parameters\n";
+				}
 			}
 			else if (cmd_nbr == TOPIC){
 				

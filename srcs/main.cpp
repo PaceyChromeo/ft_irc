@@ -14,11 +14,11 @@ void	debugFilters(std::vector<struct kevent>& changelist, int i){
 	//}
 
 	//for (size_t i = 0; i < changelist.size(); i++){
-		if (changelist[i].flags && changelist[i].flags & 0x0001)
+		if (changelist[i].flags && (changelist[i].flags & EV_ADD))
 			flags_name = "ADD";
-		else if (changelist[i].flags && changelist[i].flags & 0x0004)
+		else if (changelist[i].flags && (changelist[i].flags & EV_ENABLE))
 			flags_name = "ENABLE";
-		else if (changelist[i].flags && changelist[i].flags & 0x0008)
+		else if (changelist[i].flags && (changelist[i].flags & EV_DISABLE))
 			flags_name = "DISABLE";
 	//}
 
@@ -52,8 +52,17 @@ void	accept_connection(struct kevent event, vector<struct kevent>& change_event,
 	change_event.push_back(event);
 	EV_SET(&event, fd, EVFILT_WRITE, EV_ADD, 0 ,0, 0);
 	change_event.push_back(event);
-	EV_SET(&event, fd, EVFILT_WRITE, EV_DISABLE, 0, 0, 0);
-	change_event.push_back(event);
+}
+
+int		checkEndl(char *buf){
+	int i = 0;
+	int x = 0;
+	while (buf[x] && i < 3){
+		if (buf[x] == '\n')
+			i++;
+		x++;
+	}
+	return (i);
 }
 
 int main(int ac, char **av) {
@@ -64,6 +73,7 @@ int main(int ac, char **av) {
 	}
 	int							port = atoi(av[1]),
 								client_len,
+								line,
 								kq,
 								new_event,
 								event_fd,
@@ -76,16 +86,18 @@ int main(int ac, char **av) {
 								eventlist;
 	struct kevent				tmp_kevent;
 	struct sockaddr_in			client_addr;
-	char						buf[1024];
+	char						buf[BUF_SIZE];
 	size_t						bytes_read;
 
 	client_len = sizeof(client_addr);
 	kq = kqueue();
 	enable_read(tmp_kevent, changelist, srv.getListen());
-	eventlist.reserve(256);
+	eventlist.reserve(MAX_FD);
+	bufRecv = "";
+	line = 0;
 	srv.createChannels();
 	while (true){
-		if ((new_event = kevent(kq, changelist.begin().base(), changelist.size(), eventlist.begin().base(), 256, NULL)) < 0){
+		if ((new_event = kevent(kq, changelist.begin().base(), changelist.size(), eventlist.begin().base(), MAX_FD, NULL)) < 0){
 			perror("Kevent error");
 			exit(EXIT_FAILURE);
 		}
@@ -104,29 +116,42 @@ int main(int ac, char **av) {
 					perror("Accept error");
 				}
 				accept_connection(tmp_kevent, changelist, connection_fd);
+				disable_write(tmp_kevent, changelist, connection_fd);
 			}
-			else if (eventlist[i].filter == EVFILT_WRITE){
-				
+			else if ((eventlist[i].filter == EVFILT_WRITE) && (eventlist[i].flags & EV_ADD)){
+				cout << "TOSEND : " << toSend << endl;
 				if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
 					perror("Send error");
 				}
 				disable_write(tmp_kevent, changelist, event_fd);
+				if (toSend.find("433") < BUF_SIZE)
+					close(event_fd);
+				toSend.clear();
 			}
 			else if (eventlist[i].filter == EVFILT_READ){
-				memset(buf, 0, 1024);
+				memset(buf, 0, BUF_SIZE);
 				bufRecv.clear();
 				bytes_read = recv(event_fd, buf, eventlist[i].data, 0);
-				bufRecv.append(buf);
-				cout << "BUFFER : " << bufRecv << endl;
+				bufRecv = buf;
+				cout << "BUFFER BEFORE : " << bufRecv << endl;
+				if (bufRecv.find("CAP LS") < BUF_SIZE){
+					while (checkEndl(buf) < 3){
+						char tmp[BUF_SIZE];
+						bytes_read = recv(event_fd, tmp, eventlist[i].data, 0);
+						strcat(buf, tmp);
+						cout << "buf WHILE : " << buf << endl;
+						memset(tmp, 0, BUF_SIZE);
+					}
+					bufRecv = buf;
+				}
+				cout << "BUFFER AFTER : " << bufRecv << endl;
 				cmd = srv.findCommand(bufRecv);
-				if (bytes_read > 0){
-					toSend = srv.performCommand(cmd, buf, connection_fd, event_fd);
-					cout << "TOSEND : " << toSend << endl;
+				if (cmd != -1){
+					toSend = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
 					if (!toSend.empty()){
 					 	enable_write(tmp_kevent, changelist, event_fd);
 					}
 				}
-				//}
 			}
 		}
 	}
