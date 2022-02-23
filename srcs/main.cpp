@@ -6,30 +6,24 @@ void	debugFilters(std::vector<struct kevent>& changelist, int i){
 	std::string	filter_name("NO FILTER");
 	std::string	flags_name("NO FLAGS");
 
-	//for (size_t i = 0; i < changelist.size(); i++){
-		if (changelist[i].filter && changelist[i].filter == EVFILT_READ)
-			filter_name = "READ";
-		else if (changelist[i].filter && changelist[i].filter == EVFILT_WRITE)
-			filter_name = "WRITE";
-	//}
+	if (changelist[i].filter && changelist[i].filter == EVFILT_READ)
+		filter_name = "READ";
+	else if (changelist[i].filter && changelist[i].filter == EVFILT_WRITE)
+		filter_name = "WRITE";
 
-	//for (size_t i = 0; i < changelist.size(); i++){
-		if (changelist[i].flags && (changelist[i].flags & EV_ADD))
-			flags_name = "ADD";
-		else if (changelist[i].flags && (changelist[i].flags & EV_ENABLE))
-			flags_name = "ENABLE";
-		else if (changelist[i].flags && (changelist[i].flags & EV_DISABLE))
-			flags_name = "DISABLE";
-	//}
+	if (changelist[i].flags && (changelist[i].flags & EV_ADD))
+		flags_name = "ADD";
+	else if (changelist[i].flags && (changelist[i].flags & EV_ENABLE))
+		flags_name = "ENABLE";
+	else if (changelist[i].flags && (changelist[i].flags & EV_DISABLE))
+		flags_name = "DISABLE";
 
-	//for (size_t i = 0; i < changelist.size(); i++){
-		cout << "--------- EVENT NUMBER " << i << " ---------------\n";
-		cout << "FD : " << changelist[i].ident << endl;
-		cout << "FILTER : " << filter_name << endl;
-		cout << "FLAGS : " << flags_name << endl;
-		cout << "DATA : " << changelist[i].data << endl;
-		cout << "---------------------------------------\n";
-	//}
+	cout << "--------- EVENT NUMBER " << i << " ---------------\n";
+	cout << "FD : " << changelist[i].ident << endl;
+	cout << "FILTER : " << filter_name << endl;
+	cout << "FLAGS : " << flags_name << endl;
+	cout << "DATA : " << changelist[i].data << endl;
+	cout << "---------------------------------------\n";
 }
 
 void	enable_read(struct kevent event, vector<struct kevent>& change_event, int fd){
