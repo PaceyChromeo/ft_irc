@@ -11,15 +11,16 @@
 #include <vector>
 
 #define	KICK_TIME 300
-#define BUF_SIZE 1024
+#define BUF_SIZE 512
 #define EOL	"\r\n"
 #define MAX_FD 256
 #define YES "YES"
 #define NO "NO"
+#define TRUE "TRUE"
+#define FALSE "FALSE"
 
 enum e_cmd {	KICK,
 				JOIN,
-				ME,
 				MODE,
 				NICK,
 				OPEN,
@@ -29,6 +30,7 @@ enum e_cmd {	KICK,
 				PRIVMSG,
 				QUIT,
 				USER,
+				userhost,
 				TOPIC,
 				WHOIS };
 
@@ -37,7 +39,7 @@ using namespace std;
 class Server{
 
 	public:
-		Server(int port, std::string pswd) : _port(port), _enable(1), _password(pswd){
+		Server(int port, std::string pswd) : _port(port), _enable(1), _passEnable(0), _password(pswd){
 
 			if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				perror("Error opening socket");
@@ -61,299 +63,42 @@ class Server{
 			
 		};
 
-		std::string get_rpl_msg(std::string protocol, const User& user) const {
-			if (protocol == "RPL_WELCOME"){
-				return (std::string(":localhost 001 " + user.getNick() + "\n\"Welcome to the Internet Relay Chat Network\"\n" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL));
-			}
-			else if (protocol == "PING"){
-				return (std::string(":localhost PONG " + user.getHost() + EOL));
-			}
-			else if (protocol == "ERR_NICKNAMEINUSE"){
-				return (std::string(":localhost 433 *\n" + user.getNick() + " : Nick already in use." + EOL));
-			}
-			else if (protocol == "WHOIS"){
-				return (std::string(":localhost 311 " + user.getNick() + "*\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + EOL));
-			}
-			else
-				return (0);
-		}
+		std::string get_err_msg(std::string error, std::string cmd, const User& user) const;
+		std::string get_rpl_msg(std::string protocol, const User& user) const;
 
-		std::string get_nickname(std::string nick) const{
-			int			find = nick.find("NICK ");
-			int			find_endl = nick.substr(find + 5, nick.size()).find("\n");
-			std::string	nickname = nick.substr(find + 5, find_endl);			
-			nickname.erase(nickname.size() - 1);
-			return (nickname);
-		}
+		std::string get_nickname(std::string nick) const;
+		std::string get_username(std::string user) const;
+		std::string get_realname(std::string real) const;
+		std::string get_passwd(std::string passwd) const;
 
-		std::string get_username(std::string user) const{
-			int			find = user.find("USER ");
-			int			find_space = user.substr(find + 5, user.size()).find(" ");
-			std::string	username = user.substr(find + 5, find_space);
-			return (username);
-		}
+		void		print_users() const;
+		int			addNewUser(User& usr);
+		int			findUser(int fd) const;
+		int			findNick(std::string userhost);
 
-		std::string get_realname(std::string real) const{
-			int			find = real.rfind(":");
-			int			find_endl = real.substr(find + 1, real.size()).find("\n");
-			std::string	realname = real.substr(find + 1, find_endl);
-			realname.erase(realname.size() - 1);
-			return (realname);
-		}
+		int			removeUser(int fd);
 
-		void print_users() const { 
-			std::vector<User>::const_iterator it = _user.begin();
-			std::vector<User>::const_iterator ite = _user.end();
-			int	i = 1;
-			while (it != ite){
-				std::cout << "********** USER n" << i << " ***********\n";
-				std::cout << "_user->nickname: >>> " << (*it).getNick() << std::endl;
-				std::cout << "_user->username: >>> " << (*it).getUser() << std::endl;
-				std::cout << "_user->host: >>> " << (*it).getHost() << std::endl;
-				std::cout << "_user->mode: >>> " << (*it).getMode() << std::endl;
-				std::cout << "_user->fd: >>> " << (*it).getFd() << std::endl;
-				std::cout << "******************************\n\n";
-				it++;
-				i++;
-			}
-		}
-		
-		int	addNewUser(User& usr) {
-			std::vector<User>::iterator it = _user.begin();
-			std::vector<User>::iterator ite = _user.end();
+		void		createChannels();
+		int			findChannel(std::string name);
+		int			addNewChannel(std::string name, User &user);
+		int			addUserToChannel(std::string name, User &user);
 
-			while (it != ite){
-				if ((*it).getNick() == usr.getNick()) {
-					std::cout << "NICK ["<< usr.getNick() << "] already exists\n";
-					usr.getNick().clear();
-					return (0);
-				}
-				it++;
-			}
-			_user.push_back(usr);
-			return (1);
-		}
-
-		int    findUser(int fd) const {
-            std::vector<User>::const_iterator    it = _user.begin();
-            std::vector<User>::const_iterator    ite = _user.end();
-            int i = 0;
-
-            while (it != ite){
-                if ((*it).getFd() == fd){
-                    return (i);
-                }
-                it++;
-                i++;
-            }
-            return (-1);
-        }
-
-		int	removeUser(int fd){
-			std::vector<User>::const_iterator	it = _user.begin();
-			std::vector<User>::const_iterator	ite = _user.end();
-			int i = 0;
-
-			while (it != ite){
-				if ((*it).getFd() == fd){
-					_user.erase(it);
-					return (i);
-				}
-				it++;
-				i++;
-			}
-			return (-1);
-		}
-
-		void	createChannels() {
-			_channel.push_back(Channel("lobby"));
-			_channel.push_back(Channel("toto"));
-			_channel.push_back(Channel("mago"));
-
-			
-		}
-	
-		int findChannel(std::string name) {
-
-			std::vector<Channel>::iterator it = _channel.begin();
-			std::vector<Channel>::iterator ite = _channel.end();
-
-			int i = 0;
-			while (it != ite) {
-				if ((*it).get_channel_name() == name) {
-					std::cout << "CHANNEL [" << name << "] already exists\n";
-					return (i);
-				}
-				it++;
-				i++;
-			}
-			return (-1);
-		}
-
-		int findNick(std::string userhost) {
-			for (size_t i = 0; i < _user.size(); i++) {
-				if (userhost == _user[i].getNick()) 
-					return 1;
-			}
-			return 0;
-
-		}
-		int	addNewChannel(std::string name, User &user) {
-
-			if (findChannel(name) == -1) {
-				Channel chan(name);
-				User newuser(user);
-				chan.set_user(newuser);
-				_channel.push_back(chan);
-				return 0;
-			}
-			return 1;
-		}
-
-		int addUserToChannel(std::string name, User &user) {
-
-			int i = findChannel(name);
-			if (i > 0)
-				_channel[i].set_user(user);
-			return 0;
-		}
-
-		int	findCommand(std::string buf) const {
-			char		*args[14] = {	(char *)"KICK",
-										(char *)"JOIN",
-										(char *)"ME",
-										(char *)"MODE",
-										(char *)"NICK",
-										(char *)"OPEN",
-										(char *)"PART",
-										(char *)"PASS",
-										(char *)"PING",
-										(char *)"PRIVMSG",
-										(char *)"QUIT",
-										(char *)"userhost",
-										(char *)"TOPIC",
-										(char *)"WHOIS"};
-			std::string	cmd_name;
-			int i = 0;
-			while (i < 14){
-				cmd_name = args[i];
-				if (buf.find(cmd_name) < BUF_SIZE)
-					return (i);
-				i++;
-				cmd_name.clear();
-			}
-			return (-1);
-		}
-
-		std::string	performCommand(int cmd_nbr, std::string buf, int connection_fd, int event_fd) {
-			std::string toSend("");
-
-			if (cmd_nbr == KICK){
-
-			}
-			else if (cmd_nbr == JOIN) {
-				std::cout << "buf: " << buf << std::endl;
-				// int start = buf.find("#") + 1;
-				// int endl = buf.find("\n") - 2;
-				std::string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
-				chan_name.erase(chan_name.size() - 2);
-				std::cout << chan_name << std::endl;
-				int fd = findUser(event_fd);
-				if (addNewChannel(chan_name, _user[fd])) {
-					addUserToChannel(chan_name, _user[fd]);
-				}
-			}
-			else if (cmd_nbr == ME){
-				
-			}
-			else if (cmd_nbr == MODE){
-				
-			}
-			else if (cmd_nbr == NICK){
-				int fd = findUser(event_fd);
-				std::string newNick = get_nickname(buf);
-
-				if (buf.find("USER") < BUF_SIZE){
-					User		newUser(get_nickname(buf), get_username(buf), get_realname(buf), "localhost", "invisible", connection_fd);
-					if (addNewUser(newUser))
-						toSend = get_rpl_msg("RPL_WELCOME", newUser);
-					else{
-						toSend = get_rpl_msg("ERR_NICKNAMEINUSE", newUser);
-					}
-				}
-				else if (_user[fd].getNick() == newNick)
-					return ("");
-				else{
-					_user[fd].setNick(newNick);
-					toSend = "You're now known as " + newNick + EOL;
-				}
-			}
-			else if (cmd_nbr == OPEN){
-				
-			}
-			else if (cmd_nbr == PART){
-				
-			}
-			else if (cmd_nbr == PASS){
-				
-			}
-			else if (cmd_nbr == PING){
-				toSend = get_rpl_msg("PING", _user[findUser(event_fd)]);
-			}
-			else if (cmd_nbr == PRIVMSG){
-
-			}
-			else if (cmd_nbr == QUIT){
-				int fd = findUser(event_fd);
-
-				close(_user[fd].getFd());
-				removeUser(event_fd);
-			}
-			else if (cmd_nbr == USER){
-				if (buf.find(" ") < BUF_SIZE){
-					size_t pos = buf.find(" ");
-					size_t next_pos = buf.find(" ", pos + 1);
-					vector<string> newUser;
-					string tmp = buf;
-
-					if (next_pos != string::npos){
-						tmp.substr(pos + 1, next_pos - (pos + 1));
-						newUser.push_back(tmp);
-						pos = next_pos;
-						next_pos = buf.find(" ", pos + 1);
-						toSend = newUser[1];
-					}
-					else{
-						tmp = tmp.substr(pos + 1, tmp.size() - 11);
-						if (findNick(tmp))
-							toSend = _user[findUser(event_fd)].getNick() + EOL;
-						else
-							toSend = " \r\n"; 
-							
-					}
-				}
-				else{
-					toSend = "USERHOST not enough parameters\n";
-				}
-			}
-			else if (cmd_nbr == TOPIC){
-				
-			}
-			else if (cmd_nbr == WHOIS){
-				toSend = get_rpl_msg("WHOIS", _user[findUser(event_fd)]);
-			}
-			return (toSend);
-		}
+		int			findCommand(std::string buf) const;
+		std::string	performCommand(int cmd_nbr, std::string buf, int connection_fd, int event_fd);
 
 		~Server() {};
 
 		int					getListen() const { return this->_listen_fd; };
 		std::vector<User>	getUser() const { return this->_user; };
+		int					getPassEnable() const { return this->_passEnable; };
+		void				setPassEnable(int enable) { this->_passEnable = enable; };
+		std::string			getPassword() const { return this->_password; };
 
 	private:
 		int						_listen_fd;
 		int						_port;
 		int						_enable;
+		int						_passEnable;
 		std::string				_password;
 		std::vector<User>		_user;
 		std::vector<Channel>	_channel;
