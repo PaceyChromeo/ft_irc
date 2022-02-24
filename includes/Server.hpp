@@ -190,6 +190,14 @@ class Server{
 			return (-1);
 		}
 
+		int findNick(std::string userhost) {
+			for (size_t i = 0; i < _user.size(); i++) {
+				if (userhost == _user[i].getNick()) 
+					return 1;
+			}
+			return 0;
+
+		}
 		int	addNewChannel(std::string name, User &user) {
 
 			if (findChannel(name) == -1) {
@@ -316,8 +324,12 @@ class Server{
 						toSend = newUser[1];
 					}
 					else{
-						tmp.substr(pos + 1);
-						toSend = tmp;
+						tmp = tmp.substr(pos + 1, tmp.size() - 11);
+						if (findNick(tmp))
+							toSend = _user[findUser(event_fd)].getNick() + EOL;
+						else
+							toSend = " \r\n"; 
+							
 					}
 				}
 				else{
