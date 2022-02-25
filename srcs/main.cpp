@@ -69,24 +69,117 @@ size_t	countCR(const string& buf){
 	return (count);
 }
 
-size_t	splitBuffer(vector<string>& split, const string& buf){
-	size_t			cr = 0;
-	size_t			next_cr = 0;
-	size_t			nbr_cr = countCR(buf);
-	string			tmp;
+// size_t	splitBuffer(vector<string>& split, const string& buf){
+// 	size_t			cr = 0;
+// 	size_t			next_cr = 0;
+// 	size_t			nbr_cr = countCR(buf);
+// 	string			tmp;
 
-	if (nbr_cr < 2){
-		split.push_back(buf);
-		return (nbr_cr);
+// 	if (nbr_cr < 2){
+// 		split.push_back(buf);
+// 		return (nbr_cr);
+// 	}
+// 	for (size_t i = 0; i < nbr_cr; i++){
+// 		tmp.clear();
+// 		next_cr = buf.find('\r', cr);
+// 		tmp = buf.substr(cr, next_cr);
+// 		split.push_back(tmp);
+// 		cr = next_cr + 2;
+// 	}
+// 	return (nbr_cr);
+// }
+
+void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const User& user){
+	string			message;
+	struct kevent	event;
+
+	enable_write(event, changelist, fd);
+	if (mess == "WELCOME"){
+		message = ":localhost 001 * \"Welcome to the Internet Relay Chat Network\"\r\n\"Processing to the registration...\"\r\n";
 	}
-	for (size_t i = 0; i < nbr_cr; i++){
-		tmp.clear();
-		next_cr = buf.find('\r', cr);
-		tmp = buf.substr(cr, next_cr);
-		split.push_back(tmp);
-		cr = next_cr + 2;
+	else if (mess == "ERR_PASSWDMISMATH"){
+		message = ":localhost 464 :Password incorrect\r\n";
 	}
-	return (nbr_cr);
+	else if (mess == "ERR_NICKNAMEINUSE"){
+		message = ":localhost 433 * " + user.getNick() + " :Nick already in use." + EOL;
+	}
+	else if (mess == "RPL_WELCOME"){
+		message = ":localhost 001 " + user.getNick() + "\r\nRegistration done!\r\n\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
+	}
+	else if (mess == "ERR_NOTREGISTEDRED"){
+		message = ":localhost 451 :You have not registered.\nClosing the connection. Try again!";
+	}
+	if (send(fd, message.c_str(), message.size(), 0) < 0){
+		perror("Send error");
+	}
+	disable_write(event, changelist, fd);
+}
+
+int	performConnection(string buffer, Server& srv, vector<struct kevent>& changelist, int event_fd){
+	string	pswd = srv.get_passwd(buffer);
+	string	nick = srv.get_nickname(buffer);
+	string	user = srv.get_username(buffer);
+	string	real = srv.get_realname(buffer);
+	User	newUser;
+
+	sendMessage("WELCOME", changelist, event_fd, User());
+	if (pswd != srv.getPassword()){
+		sendMessage("ERR_PASSWDMISMATCH", changelist, event_fd, newUser);
+		return (-1);
+	}
+	else
+		srv.setPassEnable(1);
+	cout << "PASS ENABLE : " << (srv.getPassEnable() == 0 ? NO : YES) << endl;
+	for (vector<User>::iterator it = srv.getUser().begin(); it != srv.getUser().end(); it++){
+		if ((*it).getNick() == nick){
+			sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
+			return (-1);
+		}
+		newUser.setNick(nick);
+		newUser.setConnectionFirst(1);
+	}
+	newUser.setUser(user);
+	newUser.setReal(real);
+	newUser.setConnectionFirst(2);
+	newUser.setConnectionFirst(3);
+	srv.addNewUser(newUser);
+	if (srv.getPassEnable()){
+		srv.print_users();
+		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
+		return (0);
+	}
+	return (-1);
+}
+
+int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struct kevent>& changelist){
+	char 	tmp[BUF_SIZE];
+	ssize_t	bytes_read;
+	string	toSend,
+			buffer;
+
+	buffer = buf;
+	memset(tmp, 0, BUF_SIZE);
+	cout << "BUFFER : " << buffer << endl;
+	if (buffer.find("PASS ") < BUF_SIZE && buffer.find("NICK ") < BUF_SIZE && buffer.find("USER ") < BUF_SIZE){
+		cout << "OK ITS GOOD\n" << endl;
+		return (performConnection(buffer, srv, changelist, fd));
+	}
+	else{
+		while (countCR(buffer) < 4){
+			bytes_read = recv(fd, tmp, size, 0);
+			buffer.append(tmp);
+			memset(tmp, 0, BUF_SIZE);
+			if (buffer.size() > 12 && buffer.find("PASS") > BUF_SIZE){
+				cout << "LAAAAAAAAAA\n";
+				return (-1);
+			}
+		}
+		if (buffer.find("PASS ") < BUF_SIZE && buffer.find("NICK ") < BUF_SIZE && buffer.find("USER ") < BUF_SIZE){
+			cout << "NOW ITS GOOD : " << buffer << endl;
+			return (performConnection(buffer, srv, changelist, fd));
+		}
+	}
+	return (-1);
 }
 
 int main(int ac, char **av) {
@@ -104,8 +197,7 @@ int main(int ac, char **av) {
 								connection_fd,
 								cmd;
 	string						password(av[2]),
-								bufRecv;
-	vector<string>				toRecv,
+								bufRecv,
 								toSend;
 	Server						srv(port, password);
 	vector<struct kevent>		changelist,
@@ -113,7 +205,6 @@ int main(int ac, char **av) {
 	struct kevent				tmp_kevent;
 	struct sockaddr_in			client_addr;
 	char						buf[BUF_SIZE];
-	size_t						size;
 	ssize_t						bytes_read;
 
 	client_len = sizeof(client_addr);
@@ -141,11 +232,12 @@ int main(int ac, char **av) {
 				if ((connection_fd = accept(event_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_len)) < 0){
 					perror("Accept error");
 				}
+				fcntl(connection_fd, F_SETFL, O_NONBLOCK);
 				accept_connection(tmp_kevent, changelist, connection_fd);
 				disable_write(tmp_kevent, changelist, connection_fd);
 			}
 			else if ((eventlist[i].filter == EVFILT_WRITE) && (eventlist[i].flags & EV_ADD)){
-				if (send(event_fd, (char *)eventlist[i].udata, eventlist[i].data, 0) < 0){
+				if (send(event_fd, eventlist[i].udata, eventlist[i].data, 0) < 0){
 					perror("Send error");
 				}
 				disable_write(tmp_kevent, changelist, event_fd);
@@ -153,47 +245,47 @@ int main(int ac, char **av) {
 			else if (eventlist[i].filter == EVFILT_READ){
 				memset(buf, 0, BUF_SIZE);
 				bufRecv.clear();
-				toRecv.clear();
 				toSend.clear();
 				bytes_read = recv(event_fd, buf, eventlist[i].data, 0);
 				bufRecv = buf;
-				// if (bufRecv.find("CAP LS") < BUF_SIZE){
-				// 	while (checkCR(buf) < 4){
-				// 		char tmp[BUF_SIZE];
-				// 		bytes_read = recv(event_fd, tmp, eventlist[i].data, 0);
-				// 		strcat(buf, tmp);
-				// 		memset(tmp, 0, BUF_SIZE);
-				// 	}
-				// 	bufRecv = buf;
-				// }
 				cout << "BUF : " << bufRecv << endl;
-				size = splitBuffer(toRecv, bufRecv);
-				while (size > 0){
-					size_t 	i = 0;
-					string	tmp;
-
-					cmd = srv.findCommand(toRecv[size]);
-					tmp = srv.performCommand(cmd, toRecv[size], connection_fd, event_fd);
-					cout << "TMP : " << tmp << endl;
-					toSend.push_back(tmp);
-					tmp.clear();
-					i++;
-					size--;
+				if (bufRecv.find("CAP LS") < BUF_SIZE){
+					if (connectionProcess(event_fd, bufRecv, eventlist[i].data, srv, changelist) < 0){
+						sendMessage("WELCOME", changelist, event_fd, User());
+						sendMessage("ERR_NOTREGISTERED", changelist, event_fd, User());
+						close(event_fd);
+					}
 				}
-				if (!toSend.empty()){
-					tmp_kevent.udata = &toSend;
-					enable_write(tmp_kevent, changelist, event_fd);
+				else{
+					// size = splitBuffer(toRecv, bufRecv);
+					// while (size > 0){
+					// 	size_t 	i = 0;
+					// 	string	tmp;
+					cmd = srv.findCommand(bufRecv);
+					cout << "CMD : " << cmd << endl;
+					toSend = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
+					cout << "TOSEND : " << toSend << endl;
+					// 	cout << "TMP : " << tmp << endl;
+					// 	toSend.push_back(tmp);
+					// 	tmp.clear();
+					// 	i++;
+					// 	size--;
+					// }
+					if (!toSend.empty()){
+						tmp_kevent.udata = &toSend;
+						enable_write(tmp_kevent, changelist, event_fd);
+					}
+					// 	cmd = srv.findCommand(bufRecv);
+					// 	while (cmd != -1){
+					// 		string tmp = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
+					// 		toSend = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
+					// 		if (!toSend.empty()){
+					// 			tmp_kevent.udata = &toSend;
+					// 		 	enable_write(tmp_kevent, changelist, event_fd);
+					// 		}
+					// 	}
+					// }
 				}
-				// 	cmd = srv.findCommand(bufRecv);
-				// 	while (cmd != -1){
-				// 		string tmp = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
-				// 		toSend = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
-				// 		if (!toSend.empty()){
-				// 			tmp_kevent.udata = &toSend;
-				// 		 	enable_write(tmp_kevent, changelist, event_fd);
-				// 		}
-				// 	}
-				// }
 			}
 		}
 	}

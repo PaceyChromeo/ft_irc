@@ -3,6 +3,7 @@
 #include "User.hpp"
 #include "Channel.hpp"
 #include <unistd.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -19,17 +20,17 @@
 #define TRUE "TRUE"
 #define FALSE "FALSE"
 
-enum e_cmd {	KICK,
-				JOIN,
-				MODE,
+enum e_cmd {	PASS,
 				NICK,
+				KICK,
+				USER,
+				MODE,
+				JOIN,
 				OPEN,
 				PART,
-				PASS,
 				PING,
 				PRIVMSG,
 				QUIT,
-				USER,
 				userhost,
 				TOPIC,
 				WHOIS };
@@ -39,12 +40,13 @@ using namespace std;
 class Server{
 
 	public:
-		Server(int port, std::string pswd) : _port(port), _enable(1), _passEnable(0), _password(pswd){
+		Server(int port, string pswd) : _port(port), _enable(1), _passEnable(0), _password(pswd){
 
 			if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				perror("Error opening socket");
 				exit(EXIT_FAILURE);
 			}
+			fcntl(_listen_fd, F_SETFL, O_NONBLOCK);
 			setsockopt(_listen_fd, SOL_SOCKET, SO_REUSEADDR, &_enable, sizeof(int));
 			memset(&_serv_addr, 0, sizeof(_serv_addr));
 			_serv_addr.sin_family = AF_INET;
@@ -63,46 +65,46 @@ class Server{
 			
 		};
 
-		std::string get_err_msg(std::string error, std::string cmd, const User& user) const;
-		std::string get_rpl_msg(std::string protocol, const User& user) const;
+		string	get_err_msg(string error, string cmd, const User& user) const;
+		string	get_rpl_msg(string protocol, const User& user) const;
 
-		std::string get_nickname(std::string nick) const;
-		std::string get_username(std::string user) const;
-		std::string get_realname(std::string real) const;
-		std::string get_passwd(std::string passwd) const;
+		string	get_nickname(string buf) const;
+		string	get_username(string buf) const;
+		string	get_realname(string buf) const;
+		string	get_passwd(string buf) const;
 
-		void		print_users() const;
-		int			addNewUser(User& usr);
-		int			findUser(int fd) const;
-		int			findNick(std::string userhost);
+		void	print_users() const;
+		int		addNewUser(User& usr);
+		int		findUser(int fd) const;
+		int		findNick(string userhost);
 
-		int			removeUser(int fd);
+		int		removeUser(int fd);
 
-		void		createChannels();
-		int			findChannel(std::string name);
-		int			addNewChannel(std::string name, User &user);
-		int			addUserToChannel(std::string name, User &user);
+		void	createChannels();
+		int		findChannel(string name);
+		int		addNewChannel(string name, User &user);
+		int		addUserToChannel(string name, User &user);
 
-		int			findCommand(std::string buf) const;
-		std::string	performCommand(int cmd_nbr, std::string buf, int connection_fd, int event_fd);
+		int		findCommand(string buf) const;
+		string	performCommand(int cmd_nbr, string buf, int connection_fd, int event_fd);
 
 		~Server() {};
 
-		int					getListen() const { return this->_listen_fd; };
-		std::vector<User>	getUser() const { return this->_user; };
-		int					getPassEnable() const { return this->_passEnable; };
-		void				setPassEnable(int enable) { this->_passEnable = enable; };
-		std::string			getPassword() const { return this->_password; };
+		int				getListen() const { return this->_listen_fd; };
+		vector<User>	getUser() const { return this->_user; };
+		int				getPassEnable() const { return this->_passEnable; };
+		void			setPassEnable(int enable) { this->_passEnable = enable; };
+		string			getPassword() const { return this->_password; };
 
 	private:
-		int						_listen_fd;
-		int						_port;
-		int						_enable;
-		int						_passEnable;
-		std::string				_password;
-		std::vector<User>		_user;
-		std::vector<Channel>	_channel;
-		struct sockaddr_in		_serv_addr;
+		int					_listen_fd;
+		int					_port;
+		int					_enable;
+		int					_passEnable;
+		string				_password;
+		vector<User>		_user;
+		vector<Channel>		_channel;
+		struct sockaddr_in	_serv_addr;
 		
 		Server() {};
 		Server(const Server& cpy) { (void)cpy; };
