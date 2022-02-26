@@ -1,5 +1,31 @@
 #include "../includes/Server.hpp"
 
+void Server::print_users() const { 
+	std::vector<User>::const_iterator it = _user.begin();
+	std::vector<User>::const_iterator ite = _user.end();
+	int	i = 1;
+
+	if (_user.empty())
+		cout << "USER IS EMPTY\n";
+	else{
+		while (it != ite){
+			cout << "********** USER n" << i << " ***********\n";
+			cout << "_user->nickname: >>> " << (*it).getNick() << endl;
+			cout << "_user->username: >>> " << (*it).getUser() << endl;
+			cout << "_user->realname: >>> " << (*it).getReal() << endl;
+			cout << "_user->host: >>> " << (*it).getHost() << endl;
+			cout << "_user->mode: >>> " << (*it).getMode() << endl;
+			cout << "_user->fd: >>> " << (*it).getFd() << endl;
+			cout << "_user->nickname set : >>> " << ((*it).getConnectionFirst() == 1 ? TRUE : FALSE) << endl;
+			cout << "_user->username set : >>> " << ((*it).getConnectionSecond() == 1 ? TRUE : FALSE) << endl;
+			cout << "_user->registered : >>> " << ((*it).getConnectionThird() == 1 ? TRUE : FALSE) << endl;
+			cout << "******************************\n\n";
+			it++;
+			i++;
+		}
+	}
+}
+
 string Server::get_err_msg(string error, string cmd, const User& user) const {
 	if (error == "ERR_NICKNAMEGIVEN"){
 		return (string(":localhost 431 :No nickname given\r\n"));
@@ -18,10 +44,7 @@ string Server::get_err_msg(string error, string cmd, const User& user) const {
 }
 
 string Server::get_rpl_msg(string reply, const User& user) const {
-	if (reply == "RPL_WELCOME"){
-		return (string(":localhost 001 " + user.getNick() + " Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + EOL));
-	}
-	else if (reply == "PING"){
+	if (reply == "PING"){
 		return (string(":localhost PONG " + user.getHost() + EOL));
 	}
 	else
@@ -59,31 +82,6 @@ string Server::get_passwd(string passwd) const{
 	return (pswd);
 }
 
-void Server::print_users() const { 
-	std::vector<User>::const_iterator it = _user.begin();
-	std::vector<User>::const_iterator ite = _user.end();
-	int	i = 1;
-
-	if (_user.empty())
-		cout << "USER IS EMPTY\n";
-	else{
-		while (it != ite){
-			cout << "********** USER n" << i << " ***********\n";
-			cout << "_user->nickname: >>> " << (*it).getNick() << endl;
-			cout << "_user->username: >>> " << (*it).getUser() << endl;
-			cout << "_user->realname: >>> " << (*it).getReal() << endl;
-			cout << "_user->host: >>> " << (*it).getHost() << endl;
-			cout << "_user->mode: >>> " << (*it).getMode() << endl;
-			cout << "_user->fd: >>> " << (*it).getFd() << endl;
-			cout << "_user->nickname set : >>> " << ((*it).getConnectionFirst() == 1 ? TRUE : FALSE) << endl;
-			cout << "_user->username set : >>> " << ((*it).getConnectionSecond() == 1 ? TRUE : FALSE) << endl;
-			cout << "_user->registered : >>> " << ((*it).getConnectionThird() == 1 ? TRUE : FALSE) << endl;
-			cout << "******************************\n\n";
-			it++;
-			i++;
-		}
-	}
-}
 
 int	Server::addNewUser(User& usr) {
 	std::vector<User>::iterator it = _user.begin();
@@ -99,6 +97,7 @@ int	Server::addNewUser(User& usr) {
 		it++;
 	}
 	_user.push_back(usr);
+	_size++;
 	return (1);
 }
 
@@ -211,85 +210,32 @@ int	Server::findCommand(string buf) const {
 	return (-1);
 }
 
-string	Server::performCommand(int cmd_nbr, string buf, int connection_fd, int event_fd) {
+string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	string toSend("");
 
 	if (cmd_nbr == PASS){
 		string	pswd = get_passwd(buf);
 
 		if (pswd != getPassword()){
-			toSend = get_err_msg("ERR_PASSWDMISMATCH", "", _user[findUser(event_fd)]);
+			toSend = get_err_msg("ERR_PASSWDMISMATCH", "", _user[findUser(fd)]);
 		}
 		else{
 			_passEnable = 1;
 		}
 	}
 	else if (cmd_nbr == NICK){
-		int		fd = findUser(event_fd);
+		int		index = findUser(fd);
 		string	newNick = get_nickname(buf);
 		
-		if (fd == -1){
-			User	newUser(newNick, "", "", "localhost", "invisible", connection_fd, 1, 0, 0);
-			addNewUser(newUser);
+		if (newNick == _user[index].getNick())
+			toSend = EOL;
+		else{
+			_user[index].setNick(newNick);
+			toSend = "You're know known as " + newNick + EOL;
 		}
-		else if (_user[fd].getConnectionSecond() && !_user[fd].getConnectionFirst()){
-			for (size_t i = 0; i < _user.size(); i++){
-				if (_user[i].getNick() == newNick){
-					toSend = get_err_msg("ERR_NICKNAMEINUSE", "", _user[i]);
-					return (toSend);
-				}
-			}
-			_user[fd].setNick(newNick);
-			_user[fd].setConnectionFirst(1);
-			_user[fd].setConnectionThird(1);
-			if (_passEnable)
-				toSend = get_rpl_msg("RPL_WELCOME", _user[fd]);
-		}
-		else if (_user[fd].getConnectionThird()){
-			size_t	pos = buf.find(" ");
-			size_t	cr = buf.substr(pos + 1, buf.size()).find("\r");
-			string	userhost = buf.substr(pos + 1, cr);
-			
-			if (userhost == _user[fd].getNick())
-				toSend = EOL;
-			else{
-				_user[fd].setNick(newNick);
-				toSend = "You're know known as" + newNick + EOL;
-			}
-		}
-		// if (buf.find("USER") < BUF_SIZE){
-		// 	int	user_added = addNewUser(newUser);
-		// 	if (user_added == -1)
-		// 		toSend = get_err_msg("ERR_NICKNAMEGIVEN", "", newUser);
-		// 	else if (user_added == 0)
-		// 		toSend = get_err_msg("ERR_NICKNAMEINUSE", "", newUser);
-		// 	else
-		// 		toSend = get_rpl_msg("RPL_WELCOME", newUser);
-		// }
-		// else if (_user[fd].getNick() == newNick)
-		// 	return ("");
-		// else{
-		// 	_user[fd].setNick(newNick);
-		// 	toSend = "You're now known as " + newNick + EOL;
-		// }
 	}
 	else if (cmd_nbr == USER){
-		int		fd = findUser(event_fd);
-		string	newUserName = get_username(buf);
-		string	newReal = get_realname(buf);
-
-		if (fd == -1){
-			User	newUser("", newUserName, newReal, "localhost", "invisible", connection_fd, 0, 1, 0);
-			addNewUser(newUser);
-		}
-		else if (_user[fd].getConnectionFirst() && !_user[fd].getConnectionSecond()){
-			_user[fd].setUser(newUserName);
-			_user[fd].setReal(newReal);
-			_user[fd].setConnectionSecond(1);
-			_user[fd].setConnectionThird(1);
-			if (_passEnable)
-				toSend = get_rpl_msg("RPL_WELCOME", _user[fd]);
-		}
+		cout << "USER CMD\n";
 	}
 	else if (cmd_nbr == MODE){
 		
@@ -304,9 +250,9 @@ string	Server::performCommand(int cmd_nbr, string buf, int connection_fd, int ev
 		string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
 		chan_name.erase(chan_name.size() - 2);
 		cout << chan_name << endl;
-		int fd = findUser(event_fd);
-		if (addNewChannel(chan_name, _user[fd])) {
-			addUserToChannel(chan_name, _user[fd]);
+		int index = findUser(fd);
+		if (addNewChannel(chan_name, _user[index])) {
+			addUserToChannel(chan_name, _user[index]);
 		}
 	}
 	else if (cmd_nbr == OPEN){
@@ -316,25 +262,26 @@ string	Server::performCommand(int cmd_nbr, string buf, int connection_fd, int ev
 		
 	}
 	else if (cmd_nbr == PING){
-		toSend = get_rpl_msg("PING", _user[findUser(event_fd)]);
+		toSend = get_rpl_msg("PING", _user[findUser(fd)]);
+		cout << "TOSEND BEFORE : " << toSend << endl;
 	}
 	else if (cmd_nbr == PRIVMSG){
 
 	}
 	else if (cmd_nbr == QUIT){
-		int fd = findUser(event_fd);
+		int index = findUser(fd);
 
-		close(_user[fd].getFd());
-		removeUser(event_fd);
+		close(_user[index].getFd());
+		removeUser(fd);
 	}
 	else if (cmd_nbr == userhost){
-		int	fd = findUser(event_fd);
+		int	index = findUser(fd);
 
-		if (_user[fd].getConnectionThird()){
+		if (_user[index].getConnectionThird()){
 			size_t	pos = buf.find(" ");
 			size_t	cr = buf.substr(pos + 1, buf.size()).find("\r");
 			string	userhost = buf.substr(pos + 1, cr);
-			if (userhost == _user[fd].getNick())
+			if (userhost == _user[index].getNick())
 				toSend = EOL;
 			else
 				toSend = userhost + EOL; 

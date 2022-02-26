@@ -97,17 +97,17 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 	if (mess == "WELCOME"){
 		message = ":localhost 001 * \"Welcome to the Internet Relay Chat Network\"\r\n\"Processing to the registration...\"\r\n";
 	}
-	else if (mess == "ERR_PASSWDMISMATH"){
-		message = ":localhost 464 :Password incorrect\r\n";
+	else if (mess == "ERR_PASSWDMISMATCH"){
+		message = ":localhost 464 * :Password incorrect\r\n";
 	}
 	else if (mess == "ERR_NICKNAMEINUSE"){
 		message = ":localhost 433 * " + user.getNick() + " :Nick already in use." + EOL;
 	}
 	else if (mess == "RPL_WELCOME"){
-		message = ":localhost 001 " + user.getNick() + "\r\nRegistration done!\r\n\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
+		message = ":localhost 001 " + user.getNick() + "\r\n\"... Registration done!\"\r\n\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
 	}
-	else if (mess == "ERR_NOTREGISTEDRED"){
-		message = ":localhost 451 :You have not registered.\nClosing the connection. Try again!";
+	else if (mess == "ERR_NOTREGISTERED"){
+		message = ":localhost 451 * :\"You have not registered. The connection has failed. Try again :) !\"\r\n";
 	}
 	if (send(fd, message.c_str(), message.size(), 0) < 0){
 		perror("Send error");
@@ -122,30 +122,32 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 	string	real = srv.get_realname(buffer);
 	User	newUser;
 
-	sendMessage("WELCOME", changelist, event_fd, User());
+	sendMessage("WELCOME", changelist, event_fd, newUser);
 	if (pswd != srv.getPassword()){
 		sendMessage("ERR_PASSWDMISMATCH", changelist, event_fd, newUser);
+		usleep(500);
 		return (-1);
 	}
 	else
 		srv.setPassEnable(1);
-	cout << "PASS ENABLE : " << (srv.getPassEnable() == 0 ? NO : YES) << endl;
-	for (vector<User>::iterator it = srv.getUser().begin(); it != srv.getUser().end(); it++){
-		if ((*it).getNick() == nick){
+	for (int i = 0; i < srv.getSize(); i++){
+		if (srv.getUser(i).getNick() == nick){
 			sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
+			usleep(500);
 			return (-1);
 		}
-		newUser.setNick(nick);
-		newUser.setConnectionFirst(1);
 	}
+	newUser.setNick(nick);
+	newUser.setConnectionFirst(1);
 	newUser.setUser(user);
 	newUser.setReal(real);
-	newUser.setConnectionFirst(2);
-	newUser.setConnectionFirst(3);
-	srv.addNewUser(newUser);
-	if (srv.getPassEnable()){
-		srv.print_users();
+	newUser.setConnectionSecond(1);
+	newUser.setConnectionThird(1);
+	if (srv.getPassEnable() && newUser.getConnectionThird()){
+		newUser.setFd(event_fd);
+		srv.addNewUser(newUser);
 		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
+		usleep(500);
 		return (0);
 	}
 	return (-1);
@@ -159,9 +161,7 @@ int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struc
 
 	buffer = buf;
 	memset(tmp, 0, BUF_SIZE);
-	cout << "BUFFER : " << buffer << endl;
 	if (buffer.find("PASS ") < BUF_SIZE && buffer.find("NICK ") < BUF_SIZE && buffer.find("USER ") < BUF_SIZE){
-		cout << "OK ITS GOOD\n" << endl;
 		return (performConnection(buffer, srv, changelist, fd));
 	}
 	else{
@@ -169,16 +169,18 @@ int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struc
 			bytes_read = recv(fd, tmp, size, 0);
 			buffer.append(tmp);
 			memset(tmp, 0, BUF_SIZE);
-			if (buffer.size() > 12 && buffer.find("PASS") > BUF_SIZE){
-				cout << "LAAAAAAAAAA\n";
+			if (buffer.size() > 20 && buffer.find("PASS") > BUF_SIZE){
+				sendMessage("WELCOME", changelist, fd, User());
+				usleep(500);
 				return (-1);
 			}
 		}
 		if (buffer.find("PASS ") < BUF_SIZE && buffer.find("NICK ") < BUF_SIZE && buffer.find("USER ") < BUF_SIZE){
-			cout << "NOW ITS GOOD : " << buffer << endl;
 			return (performConnection(buffer, srv, changelist, fd));
 		}
 	}
+	sendMessage("WELCOME", changelist, fd, User());
+	usleep(500);
 	return (-1);
 }
 
@@ -245,46 +247,26 @@ int main(int ac, char **av) {
 			else if (eventlist[i].filter == EVFILT_READ){
 				memset(buf, 0, BUF_SIZE);
 				bufRecv.clear();
-				toSend.clear();
 				bytes_read = recv(event_fd, buf, eventlist[i].data, 0);
 				bufRecv = buf;
 				cout << "BUF : " << bufRecv << endl;
 				if (bufRecv.find("CAP LS") < BUF_SIZE){
 					if (connectionProcess(event_fd, bufRecv, eventlist[i].data, srv, changelist) < 0){
-						sendMessage("WELCOME", changelist, event_fd, User());
 						sendMessage("ERR_NOTREGISTERED", changelist, event_fd, User());
+						usleep(500);
 						close(event_fd);
 					}
 				}
 				else{
-					// size = splitBuffer(toRecv, bufRecv);
-					// while (size > 0){
-					// 	size_t 	i = 0;
-					// 	string	tmp;
+					toSend.clear();
 					cmd = srv.findCommand(bufRecv);
 					cout << "CMD : " << cmd << endl;
-					toSend = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
+					toSend = srv.performCommand(cmd, bufRecv, event_fd);
 					cout << "TOSEND : " << toSend << endl;
-					// 	cout << "TMP : " << tmp << endl;
-					// 	toSend.push_back(tmp);
-					// 	tmp.clear();
-					// 	i++;
-					// 	size--;
-					// }
 					if (!toSend.empty()){
 						tmp_kevent.udata = &toSend;
 						enable_write(tmp_kevent, changelist, event_fd);
 					}
-					// 	cmd = srv.findCommand(bufRecv);
-					// 	while (cmd != -1){
-					// 		string tmp = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
-					// 		toSend = srv.performCommand(cmd, bufRecv, connection_fd, event_fd);
-					// 		if (!toSend.empty()){
-					// 			tmp_kevent.udata = &toSend;
-					// 		 	enable_write(tmp_kevent, changelist, event_fd);
-					// 		}
-					// 	}
-					// }
 				}
 			}
 		}

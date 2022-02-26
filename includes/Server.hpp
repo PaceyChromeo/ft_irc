@@ -40,7 +40,7 @@ using namespace std;
 class Server{
 
 	public:
-		Server(int port, string pswd) : _port(port), _enable(1), _passEnable(0), _password(pswd){
+		Server(int port, string pswd) : _port(port), _enable(1), _passEnable(0), _size(0), _password(pswd){
 
 			if ((_listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				perror("Error opening socket");
@@ -86,14 +86,16 @@ class Server{
 		int		addUserToChannel(string name, User &user);
 
 		int		findCommand(string buf) const;
-		string	performCommand(int cmd_nbr, string buf, int connection_fd, int event_fd);
+		string	performCommand(int cmd_nbr, string buf, int fd);
 
 		~Server() {};
 
 		int				getListen() const { return this->_listen_fd; };
 		vector<User>	getUser() const { return this->_user; };
+		User			getUser(int i) const { return this->_user[i]; };
 		int				getPassEnable() const { return this->_passEnable; };
 		void			setPassEnable(int enable) { this->_passEnable = enable; };
+		int				getSize() const { return this->_size; };
 		string			getPassword() const { return this->_password; };
 
 	private:
@@ -101,6 +103,7 @@ class Server{
 		int					_port;
 		int					_enable;
 		int					_passEnable;
+		int					_size;
 		string				_password;
 		vector<User>		_user;
 		vector<Channel>		_channel;

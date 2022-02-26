@@ -63,9 +63,9 @@ class User {
 		std::string _host;
 		std::string	_mode;
 		int 		_fd;
-		/*	_connection[0] == nickname registered
-			_connection[1] == username registered
-			_connection[2] == user registered */
+		/*	_connection[0] == nickname registration status
+			_connection[1] == username registration status
+			_connection[2] == user registration status */
 		int			_connection[3];
 		
 };
