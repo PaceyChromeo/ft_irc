@@ -104,7 +104,7 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 		message = ":localhost 433 * " + user.getNick() + " :Nick already in use." + EOL;
 	}
 	else if (mess == "RPL_WELCOME"){
-		message = ":localhost 001 " + user.getNick() + "\r\n\"... Registration done!\"\r\n\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
+		message = ":localhost 001 " + user.getNick() + EOL + "... Registration done!" + EOL + "\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
 	}
 	else if (mess == "PING"){
 		message = ":localhost PING :localhost\r\n";
@@ -128,7 +128,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 	sendMessage("WELCOME", changelist, event_fd, newUser);
 	if (pswd != srv.getPassword()){
 		sendMessage("ERR_PASSWDMISMATCH", changelist, event_fd, newUser);
-		usleep(500);
+		usleep(WAIT);
 		return (-1);
 	}
 	else
@@ -137,7 +137,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		try{
 			if (srv.getUser()[i].getNick() == nick){
 				sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
-				usleep(500);
+				usleep(WAIT);
 				return (-1);
 			}
 		}
@@ -155,7 +155,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		newUser.setFd(event_fd);
 		srv.addNewUser(newUser);
 		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
-		usleep(500);
+		usleep(WAIT);
 		sendMessage("PING", changelist, event_fd, newUser);
 		return (0);
 	}
@@ -180,7 +180,7 @@ int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struc
 			memset(tmp, 0, BUF_SIZE);
 			if (buffer.size() > 20 && buffer.find("PASS") > BUF_SIZE){
 				sendMessage("WELCOME", changelist, fd, User());
-				usleep(500);
+				usleep(WAIT);
 				return (-1);
 			}
 		}
@@ -189,7 +189,7 @@ int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struc
 		}
 	}
 	sendMessage("WELCOME", changelist, fd, User());
-	usleep(500);
+	usleep(WAIT);
 	return (-1);
 }
 
@@ -262,7 +262,7 @@ int main(int ac, char **av) {
 				if (bufRecv.find("CAP LS") < BUF_SIZE){
 					if (connectionProcess(event_fd, bufRecv, eventlist[i].data, srv, changelist) < 0){
 						sendMessage("ERR_NOTREGISTERED", changelist, event_fd, User());
-						usleep(500);
+						usleep(WAIT);
 						close(event_fd);
 					}
 				}
