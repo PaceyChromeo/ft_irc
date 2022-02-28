@@ -131,10 +131,15 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 	else
 		srv.setPassEnable(1);
 	for (int i = 0; i < srv.getSize(); i++){
-		if (srv.getUser(i).getNick() == nick){
-			sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
-			usleep(500);
-			return (-1);
+		try{
+			if (srv.getUser()[i].getNick() == nick){
+				sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
+				usleep(500);
+				return (-1);
+			}
+		}
+		catch (exception& e){
+			std::cout << e.what() << endl;
 		}
 	}
 	newUser.setNick(nick);

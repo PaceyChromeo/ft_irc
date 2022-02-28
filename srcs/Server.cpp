@@ -119,9 +119,9 @@ int	Server::findUser(int fd) const {
 int Server::findNick(string userhost) {
 	for (size_t i = 0; i < _user.size(); i++) {
 		if (userhost == _user[i].getNick()) 
-			return 1;
+			return (i);
 	}
-	return 0;
+	return (-1);
 
 }
 
@@ -266,7 +266,18 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		cout << "TOSEND BEFORE : " << toSend << endl;
 	}
 	else if (cmd_nbr == PRIVMSG){
-
+		int whiteSpace = buf.find(" ");
+		int colon = buf.find(":");
+		int index = findUser(fd);
+		string user = buf.substr(whiteSpace + 1, (colon - whiteSpace) - 2);
+		string mmm = buf.substr(colon + 1, buf.length() - (colon + 3)) + EOL;
+		string msg = ":" + _user[index].getNick() + "!" + _user[index].getUser() + "@localhost " + buf + "\r\n";
+		int userIndex = findNick(user);
+		if (userIndex < 0)
+			; //aucun user n'a ete trouve donc il se passe rien
+		else {
+			send(_user[userIndex].getFd(), msg.c_str(), msg.length(), 0);
+		}
 	}
 	else if (cmd_nbr == QUIT){
 		int index = findUser(fd);

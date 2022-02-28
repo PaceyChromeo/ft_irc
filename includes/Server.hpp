@@ -92,7 +92,7 @@ class Server{
 
 		int				getListen() const { return this->_listen_fd; };
 		vector<User>	getUser() const { return this->_user; };
-		User			getUser(int i) const { return this->_user[i]; };
+		const User&		getUser(int i) const { return this->_user[i]; };
 		int				getPassEnable() const { return this->_passEnable; };
 		void			setPassEnable(int enable) { this->_passEnable = enable; };
 		int				getSize() const { return this->_size; };
