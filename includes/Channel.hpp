@@ -29,8 +29,8 @@ class Channel {
 		void			set_size(size_t size) { _size = size; } 
 		void			set_channel_name(string n) { this->_name = n; }
 		string 			get_channel_name() const { return this->_name; }
-
 		int				findUser(int fd) const;
+		void			join_channel(int fd);
 		void			send_msg_to_channel(int fd, string buf) const;
 
 	private:

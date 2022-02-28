@@ -239,7 +239,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		if (index == -1)
 			return EOL;
 		string	newNick = get_nickname(buf);
-		
 		if (newNick == _user[index].getNick())
 			toSend = EOL;
 		else{
@@ -262,7 +261,11 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			}
 		}
 		if (buf.find("#") < BUF_SIZE){
-			toSend = ":localhost 324 " + _user[i].getNick() + " #toto" + EOL;
+			if (buf.rfind(" ") < BUF_SIZE) {
+				toSend = ":localhost 368 " + _user[i].getNick() + " #toto :End of channel ban list" + EOL;
+			}
+			else
+				toSend = ":localhost 324 " + _user[i].getNick() + " #toto" + EOL;
 		}
 		else{
 			toSend = ":" +_user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " MODE " + _user[i].getNick() + " :+i\r\n";
@@ -286,10 +289,10 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		if (i == -1)
 			return EOL;
 		int j = findChannel(chan_name);
-		string nickname = _user[i].getNick();
 		string username = _user[i].getUser();
 		string hostname = _user[i].getHost();
-		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + nickname + " = #" + chan_name + " :\r\n" + ":localhost 366 " + nickname + " #" + chan_name + " :End of NAMES list\r\n");
+		//string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 hkrifa = #toto :\r\n" + ":localhost 366 hkrifa #toto :End of NAMES list\r\n");
+		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :\r\n" + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
 		string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
 		for(size_t k = 0; k <= _channel[j].get_size(); k++) {
 			if (_channel[j].get_size() == 0) {
