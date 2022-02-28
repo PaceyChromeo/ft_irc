@@ -51,7 +51,7 @@ string Server::get_rpl_msg(string reply, const User& user) const {
 		return (string(":localhost PONG :" + user.getHost() + EOL));
 	}
 	else if (reply == "WHOIS"){
-		return (string(":localhost 311 " + user.getNick() + "\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + EOL));
+		return (string(":localhost 311 " + user.getNick() + " " + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + EOL));
 	}
 	else
 		return (0);
@@ -251,9 +251,16 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	}
 	else if (cmd_nbr == MODE){
 		int i = findUser(fd);
+		string tmp;
 
 		if (i == -1)
 			return EOL;
+		if (buf.find("WHOIS") < BUF_SIZE){
+			tmp = get_rpl_msg("WHOIS", _user[i]);
+			if (send(fd, tmp.c_str(), tmp.size(), 0) < 0){
+				perror("Send error");
+			}
+		}
 		if (buf.find("#") < BUF_SIZE){
 			toSend = ":localhost 324 " + _user[i].getNick() + " #toto" + EOL;
 		}

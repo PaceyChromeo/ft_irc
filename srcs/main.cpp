@@ -31,21 +31,15 @@ void	debugFilters(std::vector<struct kevent>& changelist, int i){
 void	enable_read(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_READ, EV_ADD, 0, 0, 0);
 	change_event.push_back(event);
-	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
-	change_event.push_back(event);
 }
 
 void	enable_write(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_WRITE, EV_ENABLE, 0, 0, 0);
 	change_event.push_back(event);
-	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
-	change_event.push_back(event);
 }
 
 void	disable_write(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_WRITE, EV_DISABLE, 0, 0, 0);
-	change_event.push_back(event);
-	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
 	change_event.push_back(event);
 }
 
@@ -53,8 +47,6 @@ void	accept_connection(struct kevent event, vector<struct kevent>& change_event,
 	EV_SET(&event, fd, EVFILT_READ, EV_ADD, 0 ,0, 0);
 	change_event.push_back(event);
 	EV_SET(&event, fd, EVFILT_WRITE, EV_ADD, 0 ,0, 0);
-	change_event.push_back(event);
-	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
 	change_event.push_back(event);
 }
 
@@ -113,7 +105,7 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 		message = ":localhost 464 * :Password incorrect\r\n";
 	}
 	else if (mess == "ERR_NICKNAMEINUSE"){
-		message = ":localhost 433 * " + user.getNick() + " :Nick already in use." + EOL;
+		message = ":localhost 433 * " + user.getNick() + ":Nick already in use." + EOL;
 	}
 	else if (mess == "RPL_WELCOME"){
 		message = ":localhost 001 " + user.getNick() + EOL + "... Registration done!" + EOL + "\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
@@ -141,7 +133,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 	string	nick = srv.get_nickname(buffer);
 	string	user = srv.get_username(buffer);
 	string	real = srv.get_realname(buffer);
-	int		i = srv.findUser(event_fd);
+	int		i = srv.findNick(nick);
 	User	newUser;
 
 	sendMessage("WELCOME", changelist, event_fd, newUser);
@@ -177,8 +169,8 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		srv.addNewUser(newUser);
 		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
 		usleep(WAIT);
-		sendMessage("WHOIS", changelist, event_fd, newUser);
-		usleep(WAIT);
+		//sendMessage("WHOIS", changelist, event_fd, newUser);
+		//usleep(WAIT);
 		sendMessage("PING", changelist, event_fd, newUser);
 		usleep(WAIT);
 		sendMessage("PONG", changelist, event_fd, newUser);
@@ -258,7 +250,7 @@ int main(int ac, char **av) {
 		for (int i = 0; i < new_event; i++){
 			event_fd = eventlist[i].ident;
 			//debugFilters(eventlist, i);
-			//srv.print_users();
+			srv.print_users();
 			if (eventlist[i].flags & EV_EOF){
 				cout << "Client has disconnect\n";
 				srv.removeUser(event_fd);
@@ -278,11 +270,6 @@ int main(int ac, char **av) {
 				}
 				disable_write(tmp_kevent, changelist, event_fd);
 			}
-			else if (eventlist[i].filter == EVFILT_TIMER){
-				srv.removeUser(event_fd);
-				close(event_fd);
-				cout << "You've been kicked out!\n";
-			}
 			else if (eventlist[i].filter == EVFILT_READ){
 				memset(buf, 0, BUF_SIZE);
 				bufRecv.clear();
@@ -299,7 +286,7 @@ int main(int ac, char **av) {
 				}
 				else{
 					cmd = srv.findCommand(bufRecv);
-					cout << "CMD : " << cmd << endl;
+					cout << "CMD : " << cmd << " | EVENT_FD : " << event_fd << endl;
 					toSend = srv.performCommand(cmd, bufRecv, event_fd);
 					cout << "TOSEND : " << toSend << endl;
 					if (!toSend.empty()){
