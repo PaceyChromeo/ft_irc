@@ -28,7 +28,4 @@ void Channel::send_msg_to_channel(int fd, string buf) const {
 			}
 		}
 	}
-	cout << "SIZE :" << _user.size() << endl;
-	cout << "TO SEND : " << toSend << endl;
-	cout << "BUF : " << buf << endl;
 }

@@ -109,8 +109,14 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 	else if (mess == "PING"){
 		message = ":localhost PING :localhost\r\n";
 	}
+	else if (mess == "PONG") {
+		message = ":localhost PONG :localhost\r\n";
+	}
 	else if (mess == "ERR_NOTREGISTERED"){
 		message = ":localhost 451 * :\"You have not registered. The connection has failed. Try again :) !\"\r\n";
+	}
+	else if (mess == "WHOIS"){
+		message = ":localhost 311 " + user.getNick() + " " + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\r\n";
 	}
 	if (send(fd, message.c_str(), message.size(), 0) < 0){
 		perror("Send error");
@@ -156,7 +162,11 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		srv.addNewUser(newUser);
 		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
 		usleep(500);
+		sendMessage("WHOIS", changelist, event_fd, newUser);
+		usleep(500);
 		sendMessage("PING", changelist, event_fd, newUser);
+		usleep(500);
+		sendMessage("PONG", changelist, event_fd, newUser);
 		return (0);
 	}
 	return (-1);
@@ -232,8 +242,8 @@ int main(int ac, char **av) {
 		changelist.clear();
 		for (int i = 0; i < new_event; i++){
 			event_fd = eventlist[i].ident;
-			debugFilters(eventlist, i);
-			srv.print_users();
+			//debugFilters(eventlist, i);
+			//srv.print_users();
 			if (eventlist[i].flags & EV_EOF){
 				cout << "Client has disconnect\n";
 				srv.removeUser(event_fd);
@@ -249,7 +259,7 @@ int main(int ac, char **av) {
 			}
 			else if ((eventlist[i].filter == EVFILT_WRITE) && (eventlist[i].flags & EV_ADD)){
 				if (send(event_fd, eventlist[i].udata, eventlist[i].data, 0) < 0){
-					perror("Send error");
+					//perror("Send error");
 				}
 				disable_write(tmp_kevent, changelist, event_fd);
 			}
@@ -258,7 +268,7 @@ int main(int ac, char **av) {
 				bufRecv.clear();
 				bytes_read = recv(event_fd, buf, eventlist[i].data, 0);
 				bufRecv = buf;
-				cout << "BUF : " << bufRecv << endl;
+				cout << "---------------------- in ----------------------\n" << bufRecv;
 				if (bufRecv.find("CAP LS") < BUF_SIZE){
 					if (connectionProcess(event_fd, bufRecv, eventlist[i].data, srv, changelist) < 0){
 						sendMessage("ERR_NOTREGISTERED", changelist, event_fd, User());
@@ -269,9 +279,8 @@ int main(int ac, char **av) {
 				else{
 					toSend.clear();
 					cmd = srv.findCommand(bufRecv);
-					cout << "CMD : " << cmd << endl;
 					toSend = srv.performCommand(cmd, bufRecv, event_fd);
-					cout << "TOSEND : " << toSend << endl;
+					cout << "---------------------- out ----------------------\n" << toSend;
 					if (!toSend.empty()){
 						tmp_kevent.udata = &toSend;
 						enable_write(tmp_kevent, changelist, event_fd);
