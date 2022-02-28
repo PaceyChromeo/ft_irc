@@ -23,14 +23,16 @@ class Channel {
 		};
 		~Channel() {};
 
-		vector<User>	get_user() const { return this->_user; }
-		void			set_user(User &usr) { _user.push_back(usr); } 
+		string 			get_name() const { return this->_name; }
+		void			set_name(string n) { this->_name = n; }
 		size_t			get_size() const { return this->_size; }
 		void			set_size(size_t size) { _size = size; } 
-		void			set_channel_name(string n) { this->_name = n; }
-		string 			get_channel_name() const { return this->_name; }
+		vector<User>	get_user() const { return this->_user; }
+		const User&		get_user(int index) const { return this->_user[index]; }
+		void			set_user(User &usr) { _user.push_back(usr); } 
 
 		int				findUser(int fd) const;
+		int				findUser(string name) const;
 		void			send_msg_to_channel(int fd, string buf) const;
 
 	private:

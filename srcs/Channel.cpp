@@ -15,6 +15,14 @@ int    Channel::findUser(int fd) const {
 	return (-1);
 }
 
+int	Channel::findUser(string name) const{
+	for (size_t i = 0; i < _user.size(); i++){
+		if (name == _user[i].getNick())
+			return (i);
+	}
+	return (-1);
+}
+
 void Channel::send_msg_to_channel(int fd, string buf) const {
 	int i = findUser(fd);
 	string toSend = ":" + _user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " " + buf;

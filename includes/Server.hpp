@@ -75,6 +75,7 @@ class Server{
 		string	get_username(string buf) const;
 		string	get_realname(string buf) const;
 		string	get_passwd(string buf) const;
+		string	get_channel(string channel) const;
 
 		void	print_users() const;
 		int		addNewUser(User& usr);
@@ -85,6 +86,7 @@ class Server{
 
 		void	createChannels();
 		int		findChannel(string name);
+		int		findUserInChannel(int chan_index, string nick) const;
 		int		addNewChannel(string name, User &user);
 		int		addUserToChannel(string name, User &user);
 
