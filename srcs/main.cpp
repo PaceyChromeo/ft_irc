@@ -106,6 +106,9 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 	else if (mess == "RPL_WELCOME"){
 		message = ":localhost 001 " + user.getNick() + "\r\n\"... Registration done!\"\r\n\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
 	}
+	else if (mess == "PING"){
+		message = ":localhost PING :localhost\r\n";
+	}
 	else if (mess == "ERR_NOTREGISTERED"){
 		message = ":localhost 451 * :\"You have not registered. The connection has failed. Try again :) !\"\r\n";
 	}
@@ -153,6 +156,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		srv.addNewUser(newUser);
 		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
 		usleep(500);
+		sendMessage("PING", changelist, event_fd, newUser);
 		return (0);
 	}
 	return (-1);

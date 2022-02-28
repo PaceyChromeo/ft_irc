@@ -2,29 +2,39 @@
 
 #include <iostream>
 #include <vector>
+#include <sys/socket.h>
 #include "User.hpp"
+
+using namespace std;
 
 class Channel {
 
 	public:
-		Channel() {};
-		Channel(std::string n) : _name(n) { };
-		Channel(const Channel & cpy) : _name(cpy._name), _user(cpy._user) {};
+		Channel() : _name(""), _size(0) {};
+		Channel(string n) : _name(n), _size(0) { };
+		Channel(const Channel & cpy) : _name(cpy._name), _size(cpy._size), _user(cpy._user) {};
 		Channel & operator=(const Channel & rhs) {
 			if (this != &rhs){
 				_name = rhs._name;
+				_size = rhs._size;
 				_user = rhs._user;
 			}
 			return (*this);
 		};
 		~Channel() {};
 
-		std::vector<User>	get_user() const { ; return this->_user; }
-		void				set_user(User &usr) { _user.push_back(usr); } 
-		void				set_channel_name(std::string n) { this->_name = n; }
-		std::string 		get_channel_name() const { return this->_name; }
+		vector<User>	get_user() const { return this->_user; }
+		void			set_user(User &usr) { _user.push_back(usr); } 
+		size_t			get_size() const { return this->_size; }
+		void			set_size(size_t size) { _size = size; } 
+		void			set_channel_name(string n) { this->_name = n; }
+		string 			get_channel_name() const { return this->_name; }
+
+		int				findUser(int fd) const;
+		void			send_msg_to_channel(int fd, string buf) const;
 
 	private:
-		std::string 			_name;
-		std::vector<User>		_user;
+		string 			_name;
+		size_t			_size;
+		vector<User>	_user;
 };

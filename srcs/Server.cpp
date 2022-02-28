@@ -45,7 +45,13 @@ string Server::get_err_msg(string error, string cmd, const User& user) const {
 
 string Server::get_rpl_msg(string reply, const User& user) const {
 	if (reply == "PING"){
-		return (string(":localhost PONG " + user.getHost() + EOL));
+		return (string(":localhost PONG :" + user.getHost() + "\r\n"));
+	}
+	else if (reply == "PONG") {
+		return (string(":localhost PONG :" + user.getHost() + "\r\n"));
+	}
+	else if (reply == "WHOIS"){
+		return (string(":localhost 311 " + user.getNick() + "\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\r\n"));
 	}
 	else
 		return (0);
@@ -181,13 +187,15 @@ int	Server::addNewChannel(string name, User &user) {
 int Server::addUserToChannel(string name, User &user) {
 
 	int i = findChannel(name);
-	if (i > 0)
+	if (i > -1){
 		_channel[i].set_user(user);
-	return 0;
+		_channel[i].set_size(_channel[i].get_size() + 1);
+	}
+	return (0);
 }
 
 int	Server::findCommand(string buf) const {
-	char		*args[13] = {	(char *)"PASS",
+	char		*args[15] = {	(char *)"PASS",
 								(char *)"NICK",
 								(char *)"USER",
 								(char *)"MODE",
@@ -196,13 +204,15 @@ int	Server::findCommand(string buf) const {
 								(char *)"OPEN",
 								(char *)"PART",
 								(char *)"PING",
+								(char *)"PONG",
 								(char *)"PRIVMSG",
 								(char *)"QUIT",
 								(char *)"userhost",
-								(char *)"TOPIC"};
+								(char *)"TOPIC",
+								(char *)"WHOIS"};
 	int i = 0;
 	
-	while (i < 13){
+	while (i < 15){
 		if (buf.find(args[i]) < BUF_SIZE)
 			return (i);
 		i++;
@@ -238,21 +248,42 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		cout << "USER CMD\n";
 	}
 	else if (cmd_nbr == MODE){
-		
+		int i = findUser(fd);
+		toSend = ":" +_user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " MODE " + _user[i].getNick() + " :+i\r\n";
+		cout << "---------------------- out ----------------------\n" << toSend;
 	}
 	else if (cmd_nbr == KICK){
 
 	}
 	else if (cmd_nbr == JOIN) {
-		cout << "buf: " << buf << endl;
-		// int start = buf.find("#") + 1;
-		// int endl = buf.find("\n") - 2;
 		string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
 		chan_name.erase(chan_name.size() - 2);
-		cout << chan_name << endl;
-		int index = findUser(fd);
-		if (addNewChannel(chan_name, _user[index])) {
-			addUserToChannel(chan_name, _user[index]);
+		int i = findUser(fd);
+		int j = findChannel(chan_name);
+		string nickname = _user[i].getNick();
+		string username = _user[i].getUser();
+		string hostname = _user[i].getHost();
+		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 hkrifa = #toto :\r\n" + ":localhost 366 hkrifa #toto :End of NAMES list\r\n");
+		string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #toto\n");
+		for(size_t k = 0; k <= _channel[j].get_size(); k++) {
+			if (_channel[j].get_size() == 0) {
+				send(fd, join.c_str(), join.size(), 0);
+				cout << "---------------------- out ----------------------\n" << join;
+			}
+			else {
+				if (k < _channel[j].get_size()) {
+					cout << "J : " << j << " | K : " << k << endl;
+					cout << "USER JOIN : " << _channel[j].get_user()[k].getNick() << endl;
+					int user_fd = _channel[j].get_user()[k].getFd();
+					send(user_fd, join2.c_str(), join2.size(), 0);
+					cout << "---------------------- out ----------------------\n" << join2;
+				}
+			}
+		}
+		if (_channel[j].get_size() != 0)
+			send(fd, join.c_str(), join.size(), 0);
+		if (addNewChannel(chan_name, _user[i])) {
+			addUserToChannel(chan_name, _user[i]);
 		}
 	}
 	else if (cmd_nbr == OPEN){
@@ -263,20 +294,32 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	}
 	else if (cmd_nbr == PING){
 		toSend = get_rpl_msg("PING", _user[findUser(fd)]);
-		cout << "TOSEND BEFORE : " << toSend << endl;
+	}
+	else if (cmd_nbr == PONG){
+		toSend = get_rpl_msg("PONG", _user[findUser(fd)]);
+		cout << "---------------------- out ----------------------\n" << toSend;
+
 	}
 	else if (cmd_nbr == PRIVMSG){
-		int whiteSpace = buf.find(" ");
-		int colon = buf.find(":");
-		int index = findUser(fd);
-		string user = buf.substr(whiteSpace + 1, (colon - whiteSpace) - 2);
-		string mmm = buf.substr(colon + 1, buf.length() - (colon + 3)) + EOL;
-		string msg = ":" + _user[index].getNick() + "!" + _user[index].getUser() + "@localhost " + buf + "\r\n";
-		int userIndex = findNick(user);
-		if (userIndex < 0)
-			; //aucun user n'a ete trouve donc il se passe rien
-		else {
-			send(_user[userIndex].getFd(), msg.c_str(), msg.length(), 0);
+		if(buf.find("#") < BUF_SIZE){
+			string chan_name = buf.substr((buf.find("#") + 1), (buf.find(" ") - 1));
+			chan_name.erase(chan_name.size() - 2);
+			int j = findChannel(chan_name);
+			_channel[j].send_msg_to_channel(fd, buf);
+		}
+		else{
+			int whiteSpace = buf.find(" ");
+			int colon = buf.find(":");
+			int index = findUser(fd);
+			string user = buf.substr(whiteSpace + 1, (colon - whiteSpace) - 2);
+			string mmm = buf.substr(colon + 1, buf.length() - (colon + 3)) + EOL;
+			string msg = ":" + _user[index].getNick() + "!" + _user[index].getUser() + "@localhost " + buf + "\r\n";
+			int userIndex = findNick(user);
+			if (userIndex < 0)
+				; //aucun user n'a ete trouve donc il se passe rien
+			else {
+				send(_user[userIndex].getFd(), msg.c_str(), msg.length(), 0);
+			}
 		}
 	}
 	else if (cmd_nbr == QUIT){
@@ -299,6 +342,9 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		}
 	}
 	else if (cmd_nbr == TOPIC){
+	}
+	else if (cmd_nbr == WHOIS){
+		toSend = get_rpl_msg("WHOIS", _user[findUser(fd)]);
 	}
 	return (toSend);
 }
