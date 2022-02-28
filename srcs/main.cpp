@@ -122,6 +122,9 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 	else if (mess == "ERR_NOTREGISTERED"){
 		message = ":localhost 451 * :\"You have not registered. The connection has failed. Try again :) !\"\r\n";
 	}
+	else if (mess == "WHOIS"){
+		message = ":localhost 311 " + user.getNick() + " " + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\r\n";
+	}
 	if (send(fd, message.c_str(), message.size(), 0) < 0){
 		perror("Send error");
 	}
@@ -276,7 +279,7 @@ int main(int ac, char **av) {
 				toSend.clear();
 				bytes_read = recv(event_fd, buf, eventlist[i].data, 0);
 				bufRecv = buf;
-				cout << "BUF : " << bufRecv << endl;
+				cout << "---------------------- in ----------------------\n" << bufRecv;
 				if (bufRecv.find("CAP LS") < BUF_SIZE){
 					if (connectionProcess(event_fd, bufRecv, eventlist[i].data, srv, changelist) < 0){
 						sendMessage("ERR_NOTREGISTERED", changelist, event_fd, User());
@@ -286,9 +289,8 @@ int main(int ac, char **av) {
 				}
 				else{
 					cmd = srv.findCommand(bufRecv);
-					cout << "CMD : " << cmd << " | EVENT_FD : " << event_fd << endl;
 					toSend = srv.performCommand(cmd, bufRecv, event_fd);
-					cout << "TOSEND : " << toSend << endl;
+					cout << "---------------------- out ----------------------\n" << toSend;
 					if (!toSend.empty()){
 						enable_write(tmp_kevent, changelist, event_fd);
 					}

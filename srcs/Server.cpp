@@ -163,7 +163,7 @@ int Server::findChannel(string name) {
 	int i = 0;
 	while (it != ite) {
 		if ((*it).get_channel_name() == name) {
-			cout << "CHANNEL [" << name << "] already exists\n";
+
 			return (i);
 		}
 		it++;
@@ -195,10 +195,11 @@ int Server::addUserToChannel(string name, User &user) {
 }
 
 int	Server::findCommand(string buf) const {
-	char		*args[15] = {	(char *)"PASS",
+	char		*args[16] = {	(char *)"PASS",
 								(char *)"NICK",
 								(char *)"USER",
 								(char *)"MODE",
+								(char *)"WHO",
 								(char *)"KICK",
 								(char *)"JOIN",
 								(char *)"OPEN",
@@ -212,7 +213,7 @@ int	Server::findCommand(string buf) const {
 								(char *)"WHOIS"};
 	int i = 0;
 	
-	while (i < 15){
+	while (i < 16){
 		if (buf.find(args[i]) < BUF_SIZE)
 			return (i);
 		i++;
@@ -251,6 +252,9 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	}
 	else if (cmd_nbr == MODE){
 		int i = findUser(fd);
+		if (i == -1)
+			return EOL;
+		if (buf.find("#") < BUF_SIZE) {
 		string tmp;
 
 		if (i == -1)
@@ -266,8 +270,16 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		}
 		else{
 			toSend = ":" +_user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " MODE " + _user[i].getNick() + " :+i\r\n";
-			cout << "---------------------- out ----------------------\n" << toSend;
 		}
+	}
+	}
+	else if (cmd_nbr == WHO) {
+		int i = findUser(fd);
+		if (i == -1) {
+			return EOL;
+		}
+		string nickname = _user[i].getNick();
+		toSend = ":localhost 352 " +  nickname + " #toto " + nickname + " localhost " + nickname + " H*@ :0 " + nickname + EOL + ":localhost 315 " + nickname + " #toto :End of /WHO list." + EOL;
 	}
 	else if (cmd_nbr == KICK){
 
@@ -282,8 +294,8 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		string nickname = _user[i].getNick();
 		string username = _user[i].getUser();
 		string hostname = _user[i].getHost();
-		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 hkrifa = #toto :\r\n" + ":localhost 366 hkrifa #toto :End of NAMES list\r\n");
-		string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #toto\n");
+		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + nickname + " = #" + chan_name + " :\r\n" + ":localhost 366 " + nickname + " #" + chan_name + " :End of NAMES list\r\n");
+		string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
 		for(size_t k = 0; k <= _channel[j].get_size(); k++) {
 			if (_channel[j].get_size() == 0) {
 				send(fd, join.c_str(), join.size(), 0);
@@ -291,8 +303,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			}
 			else {
 				if (k < _channel[j].get_size()) {
-					cout << "J : " << j << " | K : " << k << endl;
-					cout << "USER JOIN : " << _channel[j].get_user()[k].getNick() << endl;
 					int user_fd = _channel[j].get_user()[k].getFd();
 					send(user_fd, join2.c_str(), join2.size(), 0);
 					cout << "---------------------- out ----------------------\n" << join2;
@@ -321,7 +331,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	}
 	else if (cmd_nbr == PONG){
 		int index = findUser(fd);
-
 		if (index == -1)
 			toSend = get_rpl_msg("PONG", User());
 		else
