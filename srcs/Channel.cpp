@@ -42,6 +42,13 @@ int    Channel::findUser(int fd) const {
 // 	if (_size != 0)
 // 		send(fd, join.c_str(), join.size(), 0);
 // }
+int	Channel::findUser(string name) const{
+	for (size_t i = 0; i < _user.size(); i++){
+		if (name == _user[i].getNick())
+			return (i);
+	}
+	return (-1);
+}
 
 void Channel::send_msg_to_channel(int fd, string buf) const {
 	int i = findUser(fd);

@@ -88,6 +88,12 @@ string Server::get_passwd(string passwd) const{
 	return (pswd);
 }
 
+string	Server::get_channel(string channel) const{
+	size_t	pos = channel.find("#") + 1;
+	size_t	cr = channel.substr(pos, channel.length()).find("\r");
+	string	chan = channel.substr(pos, cr);
+	return (chan);
+}
 
 int	Server::addNewUser(User& usr) {
 	std::vector<User>::iterator it = _user.begin();
@@ -156,13 +162,12 @@ void	Server::createChannels() {
 }
 
 int Server::findChannel(string name) {
-
 	std::vector<Channel>::iterator it = _channel.begin();
 	std::vector<Channel>::iterator ite = _channel.end();
 
 	int i = 0;
 	while (it != ite) {
-		if ((*it).get_channel_name() == name) {
+		if ((*it).get_name() == name) {
 
 			return (i);
 		}
@@ -172,8 +177,16 @@ int Server::findChannel(string name) {
 	return (-1);
 }
 
-int	Server::addNewChannel(string name, User &user) {
+int	Server::findUserInChannel(int chan_index, string nick) const {
+	for (size_t i = 0; i < _channel[chan_index].get_size(); i++){
+		if (_channel[chan_index].get_user(i).getNick() == nick){
+			return (i);
+		}
+	}
+	return (-1);
+}
 
+int	Server::addNewChannel(string name, User &user) {
 	if (findChannel(name) == -1) {
 		Channel chan(name);
 		User newuser(user);
@@ -185,8 +198,8 @@ int	Server::addNewChannel(string name, User &user) {
 }
 
 int Server::addUserToChannel(string name, User &user) {
-
 	int i = findChannel(name);
+
 	if (i > -1){
 		_channel[i].set_user(user);
 		_channel[i].set_size(_channel[i].get_size() + 1);
@@ -289,6 +302,7 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		if (i == -1)
 			return EOL;
 		int j = findChannel(chan_name);
+		string nickname = _user[i].getNick();
 		string username = _user[i].getUser();
 		string hostname = _user[i].getHost();
 		//string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 hkrifa = #toto :\r\n" + ":localhost 366 hkrifa #toto :End of NAMES list\r\n");
@@ -317,7 +331,18 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		
 	}
 	else if (cmd_nbr == PART){
-		
+		int		index = findUser(fd);
+		string	nick = _user[index].getNick();
+		string	user = _user[index].getUser();
+		string	host = _user[index].getHost();
+		string	chan = get_channel(buf);
+		int		chan_index = findChannel(chan);
+		int		index_user_channel = findUserInChannel(chan_index, nick);
+
+		if (index == -1)
+			return EOL;
+		cout << "LES PROBLEMES : " << index_user_channel << endl;
+		toSend = ":" + nick + "!" + user + "@" + host + " " + buf + EOL;		
 	}
 	else if (cmd_nbr == PING){
 		int index = findUser(fd);
@@ -383,6 +408,7 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		}
 	}
 	else if (cmd_nbr == TOPIC){
+
 	}
 	else if (cmd_nbr == WHOIS){
 		int index = findUser(fd);
