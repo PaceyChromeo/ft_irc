@@ -252,11 +252,7 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	}
 	else if (cmd_nbr == MODE){
 		int i = findUser(fd);
-		if (i == -1)
-			return EOL;
-		if (buf.find("#") < BUF_SIZE) {
 		string tmp;
-
 		if (i == -1)
 			return EOL;
 		if (buf.find("WHOIS") < BUF_SIZE){
@@ -271,7 +267,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		else{
 			toSend = ":" +_user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " MODE " + _user[i].getNick() + " :+i\r\n";
 		}
-	}
 	}
 	else if (cmd_nbr == WHO) {
 		int i = findUser(fd);

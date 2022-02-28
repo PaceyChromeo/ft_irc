@@ -253,7 +253,7 @@ int main(int ac, char **av) {
 		for (int i = 0; i < new_event; i++){
 			event_fd = eventlist[i].ident;
 			//debugFilters(eventlist, i);
-			srv.print_users();
+			//srv.print_users();
 			if (eventlist[i].flags & EV_EOF){
 				cout << "Client has disconnect\n";
 				srv.removeUser(event_fd);
