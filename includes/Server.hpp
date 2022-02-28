@@ -11,7 +11,7 @@
 #include <iostream>
 #include <vector>
 
-#define	KICK_TIME 300
+#define	KICK_TIME 240
 #define BUF_SIZE 512
 #define EOL	"\r\n"
 #define MAX_FD 256
