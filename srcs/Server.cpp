@@ -346,7 +346,7 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			string msg = ":" + _user[index].getNick() + "!" + _user[index].getUser() + "@localhost " + buf + "\r\n";
 			int userIndex = findNick(user);
 			if (userIndex < 0)
-				; //aucun user n'a ete trouve donc il se passe rien
+				return EOL;
 			else {
 				send(_user[userIndex].getFd(), msg.c_str(), msg.length(), 0);
 			}
