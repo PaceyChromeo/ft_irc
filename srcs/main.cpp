@@ -1,5 +1,7 @@
 #include "../includes/Server.hpp"
 
+static string toSend;
+
 void	debugFilters(std::vector<struct kevent>& changelist, int i){
 	string	filter_name("NO FILTER");
 	string	flags_name("NO FLAGS");
@@ -8,6 +10,8 @@ void	debugFilters(std::vector<struct kevent>& changelist, int i){
 		filter_name = "READ";
 	else if (changelist[i].filter && changelist[i].filter == EVFILT_WRITE)
 		filter_name = "WRITE";
+	else if (changelist[i].filter && changelist[i].filter == EVFILT_TIMER)
+		filter_name = "TIMER";
 
 	if (changelist[i].flags && (changelist[i].flags & EV_ADD))
 		flags_name = "ADD";
@@ -27,15 +31,21 @@ void	debugFilters(std::vector<struct kevent>& changelist, int i){
 void	enable_read(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_READ, EV_ADD, 0, 0, 0);
 	change_event.push_back(event);
+	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
+	change_event.push_back(event);
 }
 
 void	enable_write(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_WRITE, EV_ENABLE, 0, 0, 0);
 	change_event.push_back(event);
+	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
+	change_event.push_back(event);
 }
 
 void	disable_write(struct kevent event, vector<struct kevent>& change_event, int fd){
 	EV_SET(&event, fd, EVFILT_WRITE, EV_DISABLE, 0, 0, 0);
+	change_event.push_back(event);
+	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
 	change_event.push_back(event);
 }
 
@@ -43,6 +53,8 @@ void	accept_connection(struct kevent event, vector<struct kevent>& change_event,
 	EV_SET(&event, fd, EVFILT_READ, EV_ADD, 0 ,0, 0);
 	change_event.push_back(event);
 	EV_SET(&event, fd, EVFILT_WRITE, EV_ADD, 0 ,0, 0);
+	change_event.push_back(event);
+	EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_SECONDS, KICK_TIME, 0);
 	change_event.push_back(event);
 }
 
@@ -104,12 +116,15 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 		message = ":localhost 433 * " + user.getNick() + " :Nick already in use." + EOL;
 	}
 	else if (mess == "RPL_WELCOME"){
-		message = ":localhost 001 " + user.getNick() + "\r\n\"... Registration done!\"\r\n\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
+		message = ":localhost 001 " + user.getNick() + EOL + "... Registration done!" + EOL + "\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
+	}
+	else if (mess == "WHOIS"){
+		message = ":localhost 311 " + user.getNick() + " " + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + EOL;
 	}
 	else if (mess == "PING"){
 		message = ":localhost PING :localhost\r\n";
 	}
-	else if (mess == "PONG") {
+	else if (mess == "PONG"){
 		message = ":localhost PONG :localhost\r\n";
 	}
 	else if (mess == "ERR_NOTREGISTERED"){
@@ -129,26 +144,29 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 	string	nick = srv.get_nickname(buffer);
 	string	user = srv.get_username(buffer);
 	string	real = srv.get_realname(buffer);
+	int		i = srv.findNick(nick);
 	User	newUser;
 
 	sendMessage("WELCOME", changelist, event_fd, newUser);
 	if (pswd != srv.getPassword()){
 		sendMessage("ERR_PASSWDMISMATCH", changelist, event_fd, newUser);
-		usleep(500);
+		usleep(WAIT);
 		return (-1);
 	}
 	else
 		srv.setPassEnable(1);
-	for (int i = 0; i < srv.getSize(); i++){
-		try{
-			if (srv.getUser()[i].getNick() == nick){
-				sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
-				usleep(500);
-				return (-1);
+	if (i > -1){
+		for (int i = 0; i < srv.getSize(); i++){
+			try{
+				if (srv.getUser()[i].getNick() == nick){
+					sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
+					usleep(WAIT);
+					return (-1);
+				}
 			}
-		}
-		catch (exception& e){
-			std::cout << e.what() << endl;
+			catch (exception& e){
+				std::cout << e.what() << endl;
+			}
 		}
 	}
 	newUser.setNick(nick);
@@ -161,12 +179,13 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		newUser.setFd(event_fd);
 		srv.addNewUser(newUser);
 		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
-		usleep(500);
+		usleep(WAIT);
 		sendMessage("WHOIS", changelist, event_fd, newUser);
-		usleep(500);
+		usleep(WAIT);
 		sendMessage("PING", changelist, event_fd, newUser);
-		usleep(500);
+		usleep(WAIT);
 		sendMessage("PONG", changelist, event_fd, newUser);
+		usleep(WAIT);
 		return (0);
 	}
 	return (-1);
@@ -190,7 +209,7 @@ int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struc
 			memset(tmp, 0, BUF_SIZE);
 			if (buffer.size() > 20 && buffer.find("PASS") > BUF_SIZE){
 				sendMessage("WELCOME", changelist, fd, User());
-				usleep(500);
+				usleep(WAIT);
 				return (-1);
 			}
 		}
@@ -199,7 +218,7 @@ int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struc
 		}
 	}
 	sendMessage("WELCOME", changelist, fd, User());
-	usleep(500);
+	usleep(WAIT);
 	return (-1);
 }
 
@@ -218,8 +237,7 @@ int main(int ac, char **av) {
 								connection_fd,
 								cmd;
 	string						password(av[2]),
-								bufRecv,
-								toSend;
+								bufRecv;
 	Server						srv(port, password);
 	vector<struct kevent>		changelist,
 								eventlist;
@@ -258,31 +276,35 @@ int main(int ac, char **av) {
 				disable_write(tmp_kevent, changelist, connection_fd);
 			}
 			else if ((eventlist[i].filter == EVFILT_WRITE) && (eventlist[i].flags & EV_ADD)){
-				if (send(event_fd, eventlist[i].udata, eventlist[i].data, 0) < 0){
-					//perror("Send error");
+				if (send(event_fd, toSend.c_str(), toSend.size(), 0) < 0){
+					perror("Send error");
 				}
 				disable_write(tmp_kevent, changelist, event_fd);
+			}
+			else if (eventlist[i].filter == EVFILT_TIMER){
+				srv.removeUser(event_fd);
+				close(event_fd);
+				cout << "You've been kicked out!\n";
 			}
 			else if (eventlist[i].filter == EVFILT_READ){
 				memset(buf, 0, BUF_SIZE);
 				bufRecv.clear();
+				toSend.clear();
 				bytes_read = recv(event_fd, buf, eventlist[i].data, 0);
 				bufRecv = buf;
 				cout << "---------------------- in ----------------------\n" << bufRecv;
 				if (bufRecv.find("CAP LS") < BUF_SIZE){
 					if (connectionProcess(event_fd, bufRecv, eventlist[i].data, srv, changelist) < 0){
 						sendMessage("ERR_NOTREGISTERED", changelist, event_fd, User());
-						usleep(500);
+						usleep(WAIT);
 						close(event_fd);
 					}
 				}
 				else{
-					toSend.clear();
 					cmd = srv.findCommand(bufRecv);
 					toSend = srv.performCommand(cmd, bufRecv, event_fd);
 					cout << "---------------------- out ----------------------\n" << toSend;
 					if (!toSend.empty()){
-						tmp_kevent.udata = &toSend;
 						enable_write(tmp_kevent, changelist, event_fd);
 					}
 				}

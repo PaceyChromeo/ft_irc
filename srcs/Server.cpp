@@ -45,13 +45,13 @@ string Server::get_err_msg(string error, string cmd, const User& user) const {
 
 string Server::get_rpl_msg(string reply, const User& user) const {
 	if (reply == "PING"){
-		return (string(":localhost PONG :" + user.getHost() + "\r\n"));
+		return (string(":localhost PONG :" + user.getHost() + EOL));
 	}
 	else if (reply == "PONG") {
-		return (string(":localhost PING :" + user.getHost() + "\r\n"));
+		return (string(":localhost PONG :" + user.getHost() + EOL));
 	}
 	else if (reply == "WHOIS"){
-		return (string(":localhost 311 " + user.getNick() + "\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\r\n"));
+		return (string(":localhost 311 " + user.getNick() + "\n" + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + EOL));
 	}
 	else
 		return (0);
@@ -195,10 +195,11 @@ int Server::addUserToChannel(string name, User &user) {
 }
 
 int	Server::findCommand(string buf) const {
-	char		*args[15] = {	(char *)"PASS",
+	char		*args[16] = {	(char *)"PASS",
 								(char *)"NICK",
 								(char *)"USER",
 								(char *)"MODE",
+								(char *)"WHO",
 								(char *)"KICK",
 								(char *)"JOIN",
 								(char *)"OPEN",
@@ -212,7 +213,7 @@ int	Server::findCommand(string buf) const {
 								(char *)"WHOIS"};
 	int i = 0;
 	
-	while (i < 15){
+	while (i < 16){
 		if (buf.find(args[i]) < BUF_SIZE)
 			return (i);
 		i++;
@@ -235,6 +236,8 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	}
 	else if (cmd_nbr == NICK){
 		int		index = findUser(fd);
+		if (index == -1)
+			return EOL;
 		string	newNick = get_nickname(buf);
 		
 		if (newNick == _user[index].getNick())
@@ -249,12 +252,22 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	}
 	else if (cmd_nbr == MODE){
 		int i = findUser(fd);
+		if (i == -1)
+			return EOL;
 		if (buf.find("#") < BUF_SIZE) {
-			toSend = ":localhost 324 " + _user[i].getNick() +  " #toto +\r\n";
+			toSend = ":localhost 324 " + _user[i].getNick() + " #toto" + EOL;
 		}
-		else {
-			toSend = ":" +_user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " MODE " + _user[i].getNick() + " :+i\r\n" + ":localhost 311 " + _user[i].getNick() + " " + _user[i].getNick() + " " + _user.getUser() + " " + "localhost * :" + _user.getReal() + "\r\n";
+		else{
+			toSend = ":" +_user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " MODE " + _user[i].getNick() + " :+i\r\n";
 		}
+	}
+	else if (cmd_nbr == WHO) {
+		int i = findUser(fd);
+		if (i == -1) {
+			return EOL;
+		}
+		string nickname = _user[i].getNick();
+		toSend = ":localhost 352 " +  nickname + " #toto " + nickname + " localhost " + nickname + " H*@ :0 " + nickname + EOL + ":localhost 315 " + nickname + " #toto :End of /WHO list." + EOL;
 	}
 	else if (cmd_nbr == KICK){
 
@@ -263,11 +276,13 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
 		chan_name.erase(chan_name.size() - 2);
 		int i = findUser(fd);
+		if (i == -1)
+			return EOL;
 		int j = findChannel(chan_name);
 		string nickname = _user[i].getNick();
 		string username = _user[i].getUser();
 		string hostname = _user[i].getHost();
-		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + nickname + " = #" + chan_name + " : toto titi\r\n" + ":localhost 366 " + nickname + " #" + chan_name + " :End of NAMES list\r\n");
+		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + nickname + " = #" + chan_name + " :\r\n" + ":localhost 366 " + nickname + " #" + chan_name + " :End of NAMES list\r\n");
 		string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
 		for(size_t k = 0; k <= _channel[j].get_size(); k++) {
 			if (_channel[j].get_size() == 0) {
@@ -295,10 +310,19 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		
 	}
 	else if (cmd_nbr == PING){
-		toSend = get_rpl_msg("PING", _user[findUser(fd)]);
+		int index = findUser(fd);
+
+		if (index == -1)
+			toSend = get_rpl_msg("PING", User());
+		else
+			toSend = get_rpl_msg("PING", _user[index]);
 	}
 	else if (cmd_nbr == PONG){
-		toSend = get_rpl_msg("PONG", _user[findUser(fd)]);
+		int index = findUser(fd);
+		if (index == -1)
+			toSend = get_rpl_msg("PONG", User());
+		else
+			toSend = get_rpl_msg("PONG", _user[index]);
 
 	}
 	else if (cmd_nbr == PRIVMSG){
@@ -312,6 +336,8 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			int whiteSpace = buf.find(" ");
 			int colon = buf.find(":");
 			int index = findUser(fd);
+			if (index == -1)
+				return EOL;
 			string user = buf.substr(whiteSpace + 1, (colon - whiteSpace) - 2);
 			string mmm = buf.substr(colon + 1, buf.length() - (colon + 3)) + EOL;
 			string msg = ":" + _user[index].getNick() + "!" + _user[index].getUser() + "@localhost " + buf + "\r\n";
@@ -326,26 +352,35 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	else if (cmd_nbr == QUIT){
 		int index = findUser(fd);
 
-		close(_user[index].getFd());
-		removeUser(fd);
+		if (index > -1){
+			close(_user[index].getFd());
+			removeUser(fd);
+		}
 	}
 	else if (cmd_nbr == userhost){
 		int	index = findUser(fd);
 
-		if (_user[index].getConnectionThird()){
-			size_t	pos = buf.find(" ");
-			size_t	cr = buf.substr(pos + 1, buf.size()).find("\r");
-			string	userhost = buf.substr(pos + 1, cr);
-			if (userhost == _user[index].getNick())
-				toSend = EOL;
-			else
-				toSend = userhost + EOL; 
+		if (index > -1){
+			if (_user[index].getConnectionThird()){
+				size_t	pos = buf.find(" ");
+				size_t	cr = buf.substr(pos + 1, buf.size()).find("\r");
+				string	userhost = buf.substr(pos + 1, cr);
+				if (userhost == _user[index].getNick())
+					toSend = EOL;
+				else
+					toSend = userhost + EOL; 
+			}
 		}
 	}
 	else if (cmd_nbr == TOPIC){
 	}
 	else if (cmd_nbr == WHOIS){
-		toSend = get_rpl_msg("WHOIS", _user[findUser(fd)]);
+		int index = findUser(fd);
+
+		if (index == -1)
+			toSend = get_rpl_msg("WHOIS", User());
+		else
+			toSend = get_rpl_msg("WHOIS", _user[index]);
 	}
 	return (toSend);
 }

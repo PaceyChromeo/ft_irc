@@ -11,10 +11,11 @@
 #include <iostream>
 #include <vector>
 
-#define	KICK_TIME 300
+#define	KICK_TIME 240
 #define BUF_SIZE 512
 #define EOL	"\r\n"
 #define MAX_FD 256
+#define WAIT 1000
 #define YES "YES"
 #define NO "NO"
 #define TRUE "TRUE"
@@ -24,6 +25,7 @@ enum e_cmd {	PASS,
 				NICK,
 				USER,
 				MODE,
+				WHO,
 				KICK,
 				JOIN,
 				OPEN,
