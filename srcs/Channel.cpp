@@ -43,9 +43,19 @@ int    Channel::findUser(int fd) const {
 // 		send(fd, join.c_str(), join.size(), 0);
 // }
 int	Channel::findUser(string name) const{
-	for (size_t i = 0; i < _user.size(); i++){
+	for (size_t i = 0; i < _size; i++){
 		if (name == _user[i].getNick())
 			return (i);
+	}
+	return (-1);
+}
+
+int	Channel::removeUser(string name){
+	for (vector<User>::iterator it = _user.begin(); it != _user.end(); it++){
+		if ((*it).getNick() == name){
+			_user.erase(it);
+			return (0);
+		}
 	}
 	return (-1);
 }

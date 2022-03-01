@@ -105,7 +105,7 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 		message = ":localhost 464 * :Password incorrect\r\n";
 	}
 	else if (mess == "ERR_NICKNAMEINUSE"){
-		message = ":localhost 433 * " + user.getNick() + ":Nick already in use." + EOL;
+		message = ":localhost 433 * " + user.getNick() + " :Nick already in use." + EOL;
 	}
 	else if (mess == "RPL_WELCOME"){
 		message = ":localhost 001 " + user.getNick() + EOL + "... Registration done!" + EOL + "\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
@@ -151,7 +151,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		for (int i = 0; i < srv.getSize(); i++){
 			try{
 				if (srv.getUser()[i].getNick() == nick){
-					sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, newUser);
+					sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, User(nick, "", "", "localhost", "invisible", event_fd, 0, 0, 0));
 					usleep(WAIT);
 					return (-1);
 				}

@@ -37,6 +37,7 @@ class Channel {
 		void			set_user(User &usr) { _user.push_back(usr); } 
 		int				findUser(int fd) const;
 		int				findUser(string name) const;
+		int				removeUser(string name);
 		void			send_msg_to_channel(int fd, string buf) const;
 
 

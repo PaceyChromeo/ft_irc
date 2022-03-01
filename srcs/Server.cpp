@@ -192,9 +192,9 @@ int	Server::addNewChannel(string name, User &user) {
 		User newuser(user);
 		chan.set_user(newuser);
 		_channel.push_back(chan);
-		return 0;
+		return (0);
 	}
-	return 1;
+	return (-1);
 }
 
 int Server::addUserToChannel(string name, User &user) {
@@ -203,8 +203,20 @@ int Server::addUserToChannel(string name, User &user) {
 	if (i > -1){
 		_channel[i].set_user(user);
 		_channel[i].set_size(_channel[i].get_size() + 1);
+		return (0);
 	}
-	return (0);
+	return (-1);
+}
+
+int Server::removeUserFromChannel(string name, User& user){
+	int i = findChannel(name);
+
+	if (i > -1 && (_channel[i].get_size() > 0)){
+		_channel[i].removeUser(user.getNick());
+		_channel[i].set_size(_channel[i].get_size() - 1);
+		return (0);
+	}
+	return (-1);
 }
 
 int	Server::findCommand(string buf) const {
@@ -235,66 +247,54 @@ int	Server::findCommand(string buf) const {
 }
 
 string	Server::performCommand(int cmd_nbr, string buf, int fd) {
-	string toSend("");
-
 	if (cmd_nbr == PASS){
-		string	pswd = get_passwd(buf);
+		int	i = findUser(fd);
 
-		if (pswd != getPassword()){
-			toSend = get_err_msg("ERR_PASSWDMISMATCH", "", _user[findUser(fd)]);
-		}
-		else{
-			_passEnable = 1;
-		}
-	}
-	else if (cmd_nbr == NICK){
-		int		index = findUser(fd);
-		if (index == -1)
-			return EOL;
-		string	newNick = get_nickname(buf);
-		if (newNick == _user[index].getNick())
-			toSend = EOL;
-		else{
-			_user[index].setNick(newNick);
-			toSend = "You're know known as " + newNick + EOL;
-		}
-	}
-	else if (cmd_nbr == USER){
-		cout << "USER CMD\n";
-	}
-	else if (cmd_nbr == MODE){
-		int i = findUser(fd);
-		string tmp;
 		if (i == -1)
 			return EOL;
-		if (buf.find("WHOIS") < BUF_SIZE){
-			tmp = get_rpl_msg("WHOIS", _user[i]);
-			if (send(fd, tmp.c_str(), tmp.size(), 0) < 0){
-				perror("Send error");
-			}
-		}
-		if (buf.find("#") < BUF_SIZE){
-			if (buf.rfind(" b") < BUF_SIZE) {
-				toSend = ":localhost 368 " + _user[i].getNick() + " #toto :End of channel ban list" + EOL;
-			}
-			else
-				toSend = ":localhost 324 " + _user[i].getNick() + " #toto" + EOL;
-		}
-		else{
-			toSend = ":" +_user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " MODE " + _user[i].getNick() + " :+i\r\n";
-		}
+		else
+			return (passCmd(this, buf, _user[i]));
 	}
+
+	else if (cmd_nbr == NICK){
+		int	i = findUser(fd);
+
+		if (i == -1)
+			return EOL;
+		else
+			return(nickCmd(this, buf, _user[i]));
+	}
+
+	else if (cmd_nbr == USER){
+		return (userCmd(this));
+	}
+
+	else if (cmd_nbr == MODE){
+		int i = findUser(fd);
+		if (i == -1)
+			return EOL;
+		else
+			return (modeCmd(this, buf, _user[i], fd));
+	}
+
 	else if (cmd_nbr == WHO) {
 		int i = findUser(fd);
-		if (i == -1) {
-			return EOL;
-		}
-		string nickname = _user[i].getNick();
-		toSend = ":localhost 352 " +  nickname + " #toto " + nickname + " localhost " + nickname + " H*@ :0 " + nickname + EOL + ":localhost 315 " + nickname + " #toto :End of /WHO list." + EOL;
-	}
-	else if (cmd_nbr == KICK){
 
+		if (i == -1)
+			return EOL;
+		else
+			return (whoCmd(this, _user[i]));
 	}
+
+	else if (cmd_nbr == KICK){
+		int	i = findUser(fd);
+	
+		if (i == -1)
+			return EOL;
+		else
+			return (kickCmd(this, _user[i]));
+	}
+
 	else if (cmd_nbr == JOIN) {
 		string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
 		chan_name.erase(chan_name.size() - 2);
@@ -336,95 +336,78 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		}
 	}
 	else if (cmd_nbr == OPEN){
-		
+		int	i = findUser(fd);
+	
+		if (i == -1)
+			return EOL;
+		else
+			return (openCmd(this, _user[i]));
 	}
 	else if (cmd_nbr == PART){
-		int		index = findUser(fd);
-		string	nick = _user[index].getNick();
-		string	user = _user[index].getUser();
-		string	host = _user[index].getHost();
-		string	chan = get_channel(buf);
-		int		chan_index = findChannel(chan);
-		int		index_user_channel = findUserInChannel(chan_index, nick);
+		int	i = findUser(fd);
 
-		if (index == -1)
+		if (i == -1)
 			return EOL;
-		cout << "LES PROBLEMES : " << index_user_channel << endl;
-		toSend = ":" + nick + "!" + user + "@" + host + " " + buf + EOL;		
+		else
+			return (partCmd(this, buf, _user[i]));
 	}
 	else if (cmd_nbr == PING){
-		int index = findUser(fd);
+		int i = findUser(fd);
 
-		if (index == -1)
-			toSend = get_rpl_msg("PING", User());
+		if (i == -1)
+			return(get_rpl_msg("PING", User()));
 		else
-			toSend = get_rpl_msg("PING", _user[index]);
+			return(get_rpl_msg("PING", _user[i]));
 	}
 	else if (cmd_nbr == PONG){
-		int index = findUser(fd);
-		if (index == -1)
-			toSend = get_rpl_msg("PONG", User());
+		int i = findUser(fd);
+
+		if (i == -1)
+			return(get_rpl_msg("PONG", User()));
 		else
-			toSend = get_rpl_msg("PONG", _user[index]);
+			return(get_rpl_msg("PONG", _user[i]));
 
 	}
 	else if (cmd_nbr == PRIVMSG){
-		if(buf.find("#") < BUF_SIZE){
-			string chan_name = buf.substr((buf.find("#") + 1), (buf.find(" ") - 1));
-			chan_name.erase(chan_name.size() - 2);
-			int j = findChannel(chan_name);
-			_channel[j].send_msg_to_channel(fd, buf);
-		}
-		else{
-			int whiteSpace = buf.find(" ");
-			int colon = buf.find(":");
-			int index = findUser(fd);
-			if (index == -1)
-				return EOL;
-			string user = buf.substr(whiteSpace + 1, (colon - whiteSpace) - 2);
-			string mmm = buf.substr(colon + 1, buf.length() - (colon + 3)) + EOL;
-			string msg = ":" + _user[index].getNick() + "!" + _user[index].getUser() + "@localhost " + buf + "\r\n";
-			int userIndex = findNick(user);
-			if (userIndex < 0)
-				return EOL;
-			else {
-				send(_user[userIndex].getFd(), msg.c_str(), msg.length(), 0);
-			}
-		}
+		int	i = findUser(fd);
+	
+		if (i == -1)
+			return EOL;
+		else
+			return (privmsgCmd(this, buf, _user, fd));
 	}
 	else if (cmd_nbr == QUIT){
-		int index = findUser(fd);
+		int i = findUser(fd);
 
-		if (index > -1){
-			close(_user[index].getFd());
+		if (i > -1){
+			close(_user[i].getFd());
 			removeUser(fd);
 		}
+		return EOL;
 	}
 	else if (cmd_nbr == userhost){
-		int	index = findUser(fd);
+		int	i = findUser(fd);
 
-		if (index > -1){
-			if (_user[index].getConnectionThird()){
-				size_t	pos = buf.find(" ");
-				size_t	cr = buf.substr(pos + 1, buf.size()).find("\r");
-				string	userhost = buf.substr(pos + 1, cr);
-				if (userhost == _user[index].getNick())
-					toSend = EOL;
-				else
-					toSend = userhost + EOL; 
-			}
-		}
+		if (i == -1)
+			return EOL;
+		else
+			return (userhostCmd(this, buf, _user[i]));
 	}
 	else if (cmd_nbr == TOPIC){
-
+		int	i = findUser(fd);
+	
+		if (i == -1)
+			return EOL;
+		else
+			return(topicCmd(this, _user[i]));
 	}
 	else if (cmd_nbr == WHOIS){
 		int index = findUser(fd);
 
 		if (index == -1)
-			toSend = get_rpl_msg("WHOIS", User());
+			return(get_rpl_msg("WHOIS", User()));
 		else
-			toSend = get_rpl_msg("WHOIS", _user[index]);
+			return(get_rpl_msg("WHOIS", _user[index]));
 	}
-	return (toSend);
+	return EOL;
 }
