@@ -2,6 +2,7 @@
 
 #include "User.hpp"
 #include "Channel.hpp"
+#include "Command.hpp"
 #include <unistd.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -89,6 +90,7 @@ class Server{
 		int		findUserInChannel(int chan_index, string nick) const;
 		int		addNewChannel(string name, User &user);
 		int		addUserToChannel(string name, User &user);
+		int		removeUserFromChannel(string name, User& user);
 
 		int		findCommand(string buf) const;
 		string	performCommand(int cmd_nbr, string buf, int fd);
@@ -98,6 +100,8 @@ class Server{
 		int				getListen() const { return this->_listen_fd; };
 		vector<User>	getUser() const { return this->_user; };
 		const User&		getUser(int i) const { return this->_user[i]; };
+		vector<Channel>	getChannel() const { return this->_channel; };
+		const Channel&	getChannel(int i) const { return this->_channel[i]; };
 		int				getPassEnable() const { return this->_passEnable; };
 		void			setPassEnable(int enable) { this->_passEnable = enable; };
 		int				getSize() const { return this->_size; };

@@ -36,6 +36,7 @@ class Channel {
 
 		int				findUser(int fd) const;
 		int				findUser(string name) const;
+		int				removeUser(string name);
 		void			send_msg_to_channel(int fd, string buf) const;
 
 	private:

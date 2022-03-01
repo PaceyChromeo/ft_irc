@@ -15,6 +15,7 @@ ifneq (,$(findstring xterm,${TERM}))
 endif
 
 SRC=	srcs/Channel.cpp \
+		srcs/Command.cpp \
 		srcs/main.cpp \
 		srcs/Server.cpp \
 		srcs/User.cpp
