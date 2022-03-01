@@ -31,15 +31,18 @@ class Channel {
 		string 			get_channel_name() const { return this->_name; }
 		void			join_channel(int fd);
 		vector<User>	get_user() const { return this->_user; }
+		string			get_nick() const { return this->_nick; }
+		void			set_nick(string nick) { _nick.append(nick); }
 		const User&		get_user(int index) const { return this->_user[index]; }
 		void			set_user(User &usr) { _user.push_back(usr); } 
-
 		int				findUser(int fd) const;
 		int				findUser(string name) const;
 		void			send_msg_to_channel(int fd, string buf) const;
+
 
 	private:
 		string 			_name;
 		size_t			_size;
 		vector<User>	_user;
+		string			_nick;
 };
