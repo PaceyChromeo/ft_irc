@@ -15,6 +15,21 @@ int    Channel::findUser(int fd) const {
 	return (-1);
 }
 
+// string::iterator    Channel::findUser(string name) const {
+// 	std::vector<User>::const_iterator    it = _user.begin();
+// 	std::vector<User>::const_iterator    ite = _user.end();
+// 	int i = 0;
+
+// 	while (it != ite){
+// 		if ((*it).getNick() == name){
+// 			return (it);
+// 		}
+// 		it++;
+// 		i++;
+// 	}
+// 	return (-1);
+// }
+
 // void Channel::join_channel(int fd) {
 // 	int i = findUser(fd);
 
@@ -43,8 +58,9 @@ int    Channel::findUser(int fd) const {
 // 		send(fd, join.c_str(), join.size(), 0);
 // }
 int	Channel::findUser(string name) const{
-	for (size_t i = 0; i < _size; i++){
-		if (name == _user[i].getNick())
+	for (size_t i = 0; i <= _nick.size(); i++){
+		cout << _nick[i];
+		if (name + " " == _nick[i])
 			return (i);
 	}
 	return (-1);

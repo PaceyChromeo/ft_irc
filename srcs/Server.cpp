@@ -211,7 +211,12 @@ int Server::addUserToChannel(string name, User &user) {
 int Server::removeUserFromChannel(string name, User& user){
 	int i = findChannel(name);
 
-	if (i > -1 && (_channel[i].get_size() > 0)){
+	if (i > -1 && (_channel[i].get_size() > 0)) {
+		int index = _channel[i].findUser(user.getNick());
+		cout << "USER :" << user.getNick() << endl;
+		cout << "INDEX :" << index << endl;
+		vector<string>::const_iterator begin = _channel[i].get_nicks().begin();
+		_channel[i].get_nicks().erase(begin + index);
 		_channel[i].removeUser(user.getNick());
 		_channel[i].set_size(_channel[i].get_size() - 1);
 		return (0);
@@ -305,16 +310,18 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		string nickname = _user[i].getNick();
 		string username = _user[i].getUser();
 		string hostname = _user[i].getHost();
-		cout << _channel[j].get_size() << endl;
+		string nicks;
 		if (_channel[j].get_size() == 0) {
 			_channel[j].set_nick("@" + nickname + " ");
 		}
 		else {
 			_channel[j].set_nick(nickname + " ");
 		}
-		cout << _channel[j].get_nick() << endl;
+		for (size_t i = 0; i <= _channel[j].get_size(); i++)
+			nicks.append(_channel[j].get_nick(i));
+		cout << "NICKS :" << nicks << endl;
 		//string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 hkrifa = #toto :\r\n" + ":localhost 366 hkrifa #toto :End of NAMES list\r\n");
-		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + _channel[j].get_nick() + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
+		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + nicks + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
 		string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
 		for(size_t k = 0; k <= _channel[j].get_size(); k++) {
 			if (_channel[j].get_size() == 0) {
