@@ -40,6 +40,12 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 			perror("Send error");
 		}
 	}
+	if (buf.find("*") < BUF_SIZE){
+		string	newBuf = "MODE " + user.getNick();
+		size_t	begin = buf.find(newBuf);
+		size_t	end = buf.substr(begin, buf.size()).find("\r");
+		buf = buf.substr(begin, end);
+	}
 	if (buf.find("#") < BUF_SIZE){
 		if (buf.rfind(" b") < BUF_SIZE) {
 			toSend = ":localhost 368 " + user.getNick() + " #toto :End of channel ban list" + EOL;
@@ -48,7 +54,34 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 			toSend = ":localhost 324 " + user.getNick() + " #toto" + EOL;
 	}
 	else{
-		toSend = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " MODE " + user.getNick() + " :+i" + EOL;
+		size_t	begin = buf.find(" ") + 1;
+		size_t	end = 0;
+		size_t	sign;
+		string	nick;
+		string	mode;
+
+		if (buf.find("+") < BUF_SIZE || buf.find("-") < BUF_SIZE){
+			buf.find("+") < BUF_SIZE ? sign = buf.find("+") : sign = buf.find("-");
+			end = buf.substr(begin, buf.size()).find(" ");
+			mode = buf.substr(sign, buf.find("\r") - 2);
+			if (mode.find("\r")< BUF_SIZE)
+				mode = mode.substr(0, mode.size() - 2);
+		}
+		else
+			end = buf.substr(begin, buf.size()).find("\r");
+		nick = buf.substr(begin, end);
+		if (nick != user.getNick()){
+			return(":localhost 502 * :Cannot change mode for other users\r\n");
+		}
+		if (!mode.empty() && mode.size() == 2 
+			&& (mode.find("a") < BUF_SIZE || mode.find("i") < BUF_SIZE
+			|| mode.find("w") < BUF_SIZE || mode.find("r") < BUF_SIZE
+			|| mode.find("o") < BUF_SIZE || mode.find("O") < BUF_SIZE
+			|| mode.find("s") < BUF_SIZE )){
+			toSend = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + buf + EOL;
+		}
+		else
+			return(":localhost 501 * :Unknown MODE flag\r\n");
 	}
 	return (toSend);
 }

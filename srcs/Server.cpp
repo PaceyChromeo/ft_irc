@@ -39,6 +39,12 @@ string Server::get_err_msg(string error, string cmd, const User& user) const {
 	else if (error == "ERR_PASSWDMISMATCH"){
 		return (string(":localhost 464 :Password incorrect\r\n"));
 	}
+	// else if (error == "ERR_UMODEUNKNOWNFLAG"){
+	// 	return (string(":localhost 501 :Unknown MODE flag\r\n"));
+	// }
+	// else if (error == "ERR_USERSDONTMATCH"){
+	// 	return (string(":localhost 502 :Cannot change mode for other users\r\n"));
+	// }
 	else
 		return (0);
 }

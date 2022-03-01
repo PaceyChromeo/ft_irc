@@ -73,33 +73,13 @@ size_t	countCR(const string& buf){
 	return (count);
 }
 
-// size_t	splitBuffer(vector<string>& split, const string& buf){
-// 	size_t			cr = 0;
-// 	size_t			next_cr = 0;
-// 	size_t			nbr_cr = countCR(buf);
-// 	string			tmp;
-
-// 	if (nbr_cr < 2){
-// 		split.push_back(buf);
-// 		return (nbr_cr);
-// 	}
-// 	for (size_t i = 0; i < nbr_cr; i++){
-// 		tmp.clear();
-// 		next_cr = buf.find('\r', cr);
-// 		tmp = buf.substr(cr, next_cr);
-// 		split.push_back(tmp);
-// 		cr = next_cr + 2;
-// 	}
-// 	return (nbr_cr);
-// }
-
 void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const User& user){
 	string			message;
 	struct kevent	event;
 
 	enable_write(event, changelist, fd);
 	if (mess == "WELCOME"){
-		message = ":localhost 001 * \"Welcome to the Internet Relay Chat Network\"\r\n\"Processing to the registration...\"\r\n";
+		message = ":localhost 001 * \r\n\"Wait while processing to the registration...\"\r\n";
 	}
 	else if (mess == "ERR_PASSWDMISMATCH"){
 		message = ":localhost 464 * :Password incorrect\r\n";
@@ -110,20 +90,8 @@ void	sendMessage(string mess, vector<struct kevent>& changelist, int fd, const U
 	else if (mess == "RPL_WELCOME"){
 		message = ":localhost 001 " + user.getNick() + EOL + "... Registration done!" + EOL + "\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL;
 	}
-	else if (mess == "WHOIS"){
-		message = ":localhost 311 " + user.getNick() + " " + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + EOL;
-	}
-	else if (mess == "PING"){
-		message = ":localhost PING :localhost\r\n";
-	}
-	else if (mess == "PONG"){
-		message = ":localhost PONG :localhost\r\n";
-	}
 	else if (mess == "ERR_NOTREGISTERED"){
 		message = ":localhost 451 * :\"You have not registered. The connection has failed. Try again :) !\"\r\n";
-	}
-	else if (mess == "WHOIS"){
-		message = ":localhost 311 " + user.getNick() + " " + user.getNick() + " " + user.getUser() + " " + "localhost * :" + user.getReal() + "\r\n";
 	}
 	if (send(fd, message.c_str(), message.size(), 0) < 0){
 		perror("Send error");
@@ -151,7 +119,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		for (int i = 0; i < srv.getSize(); i++){
 			try{
 				if (srv.getUser()[i].getNick() == nick){
-					sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, User(nick, "", "", "localhost", "invisible", event_fd, 0, 0, 0));
+					sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, User(nick, "", "", "localhost", "+i", event_fd, 0, 0, 0));
 					usleep(WAIT);
 					return (-1);
 				}
@@ -171,12 +139,6 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		newUser.setFd(event_fd);
 		srv.addNewUser(newUser);
 		sendMessage("RPL_WELCOME", changelist, event_fd, newUser);
-		usleep(WAIT);
-		//sendMessage("WHOIS", changelist, event_fd, newUser);
-		//usleep(WAIT);
-		sendMessage("PING", changelist, event_fd, newUser);
-		usleep(WAIT);
-		sendMessage("PONG", changelist, event_fd, newUser);
 		usleep(WAIT);
 		return (0);
 	}
@@ -252,8 +214,6 @@ int main(int ac, char **av) {
 		changelist.clear();
 		for (int i = 0; i < new_event; i++){
 			event_fd = eventlist[i].ident;
-			//debugFilters(eventlist, i);
-			//srv.print_users();
 			if (eventlist[i].flags & EV_EOF){
 				cout << "Client has disconnect\n";
 				srv.removeUser(event_fd);
