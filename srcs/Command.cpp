@@ -95,10 +95,13 @@ string whoCmd(Server* srv, User& user){
 	return (toSend);
 }
 
-string kickCmd(Server* srv, User& user){
+string kickCmd(Server* srv, User& user, string buf){
 	(void)srv;
-	(void)user;
-	return ("KICK CMD\r\n");
+	string nick = user.getNick();
+	string usr = user.getUser();
+	string host = user.getHost();
+	string toSend = ":" + nick + "!" + usr + host + " " + buf + EOL;
+	return (toSend);
 }
 
 string openCmd(Server* srv, User& user){
@@ -117,7 +120,6 @@ string	partCmd(Server* srv, string buf, User& usr){
 	srv->removeUserFromChannel(chan, usr);
 	int	i = srv->findChannel(chan);
 	toSend = ":" + nick + "!" + user + "@" + host + " " + buf + EOL;
-	cout << "SIZE " << srv->getChannel(i).get_user().size() << endl;
 	for (size_t k = 0; k < srv->getChannel(i).get_size(); k++) {
 		int user_fd = srv->getChannel(i).get_user()[k].getFd();
 		send(user_fd, toSend.c_str(), toSend.size(), 0);

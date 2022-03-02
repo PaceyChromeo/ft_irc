@@ -300,7 +300,7 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		if (i == -1)
 			return EOL;
 		else
-			return (kickCmd(this, _user[i]));
+			return (kickCmd(this, _user[i], buf));
 	}
 
 	else if (cmd_nbr == JOIN) {
