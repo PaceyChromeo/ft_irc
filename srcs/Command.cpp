@@ -113,9 +113,16 @@ string	partCmd(Server* srv, string buf, User& usr){
 	string	host = usr.getHost();
 	string	chan = srv->get_channel(buf);
 	string	toSend;
-
+	
 	srv->removeUserFromChannel(chan, usr);
+	int	i = srv->findChannel(chan);
 	toSend = ":" + nick + "!" + user + "@" + host + " " + buf + EOL;
+	cout << "SIZE " << srv->getChannel(i).get_user().size() << endl;
+	for (size_t k = 0; k < srv->getChannel(i).get_size(); k++) {
+		int user_fd = srv->getChannel(i).get_user()[k].getFd();
+		send(user_fd, toSend.c_str(), toSend.size(), 0);
+		cout << "---------------------- out ----------------------\n" << toSend;
+	}
 	return (toSend);
 }
 
@@ -167,4 +174,42 @@ string topicCmd(Server* srv, User& user){
 	(void)srv;
 	(void)user;
 	return ("TOPIC CMD\r\n");
+}
+
+void joinCmd(Server *srv, User &user, int fd, string chan_name) {
+	string nickname = user.getNick();
+	string username = user.getUser();
+	string hostname = user.getHost();
+	string nicks;
+
+	if (srv->addNewChannel(chan_name, user)) {
+		srv->addUserToChannel(chan_name, user);
+	}
+	int j = srv->findChannel(chan_name);
+	for (size_t i = 0; i < srv->getChannel(j).get_size(); i++) {
+		if (i == 0)
+			nicks += "@";
+		nicks.append(srv->getChannel(j).get_user()[i].getNick() + " ");
+	}
+	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + chan_name + "\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + nicks + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
+	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
+	for(size_t k = 0; k < srv->getChannel(j).get_size(); k++) {
+		if (srv->getChannel(j).get_size() == 1) {
+			send(fd, join.c_str(), join.size(), 0);
+			cout << "---------------------- out ----------------------\n" << join;
+		}
+		else {
+			if (k < srv->getChannel(j).get_size()) {
+				int user_fd = srv->getChannel(j).get_user()[k].getFd();
+				if (user_fd != fd) {
+					send(user_fd, join2.c_str(), join2.size(), 0);
+					cout << "---------------------- out ----------------------\n" << join2;
+				}
+			}
+		}
+	}
+	if (srv->getChannel(j).get_size() > 1) {
+		send(fd, join.c_str(), join.size(), 0);
+		cout << "---------------------- out ----------------------\n" << join;
+	}
 }

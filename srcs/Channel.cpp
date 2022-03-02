@@ -15,6 +15,32 @@ int    Channel::findUser(int fd) const {
 	return (-1);
 }
 
+void Channel::print_users() const { 
+	std::vector<User>::const_iterator it = _user.begin();
+	std::vector<User>::const_iterator ite = _user.end();
+	int	i = 1;
+
+	if (_user.empty())
+		cout << "USER IS EMPTY\n";
+	else{
+		while (it != ite){
+			cout << "********** USER n" << i << " ***********\n";
+			cout << "_user->nickname: >>> " << (*it).getNick() << endl;
+			cout << "_user->username: >>> " << (*it).getUser() << endl;
+			cout << "_user->realname: >>> " << (*it).getReal() << endl;
+			cout << "_user->host: >>> " << (*it).getHost() << endl;
+			cout << "_user->mode: >>> " << (*it).getMode() << endl;
+			cout << "_user->fd: >>> " << (*it).getFd() << endl;
+			// cout << "_user->nickname set : >>> " << ((*it).getConnectionFirst() == 1 ? TRUE : FALSE) << endl;
+			// cout << "_user->username set : >>> " << ((*it).getConnectionSecond() == 1 ? TRUE : FALSE) << endl;
+			// cout << "_user->registered : >>> " << ((*it).getConnectionThird() == 1 ? TRUE : FALSE) << endl;
+			cout << "******************************\n\n";
+			it++;
+			i++;
+		}
+	}
+}
+
 // string::iterator    Channel::findUser(string name) const {
 // 	std::vector<User>::const_iterator    it = _user.begin();
 // 	std::vector<User>::const_iterator    ite = _user.end();
@@ -30,33 +56,7 @@ int    Channel::findUser(int fd) const {
 // 	return (-1);
 // }
 
-// void Channel::join_channel(int fd) {
-// 	int i = findUser(fd);
 
-// 	string nickname = _user[i].getNick();
-// 	string username = _user[i].getUser();
-// 	string hostname = _user[i].getHost();
-// 	//string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 hkrifa = #toto :\r\n" + ":localhost 366 hkrifa #toto :End of NAMES list\r\n");
-// 	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + username + " = #" + _name + " :\r\n" + ":localhost 366 " + username + " #" + _name + " :End of NAMES list\r\n");
-// 	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + _name + "\r\n");
-// 	cout << "ici\n";
-// 	for(size_t k = 0; k <= _size; k++) {
-// 		if (_size == 1) {
-			
-// 			send(fd, join.c_str(), join.size(), 0);
-// 			cout << "---------------------- out ----------------------\n" << join;
-// 		}
-// 		else {
-// 			if (k < _size) {
-// 				int user_fd = _user[k].getFd();
-// 				send(user_fd, join2.c_str(), join2.size(), 0);
-// 				cout << "---------------------- out ----------------------\n" << join2;
-// 			}
-// 		}
-// 	}
-// 	if (_size != 0)
-// 		send(fd, join.c_str(), join.size(), 0);
-// }
 int	Channel::findUser(string name) const{
 	for (size_t i = 0; i <= _nick.size(); i++){
 		cout << _nick[i];
@@ -85,7 +85,6 @@ void Channel::send_msg_to_channel(int fd, string buf) const {
 			if (user_fd != fd) {
 				send(user_fd, toSend.c_str(), toSend.size(), 0);
 				cout << "---------------------- out ----------------------" << toSend << endl;
-				
 			}
 		}
 	}

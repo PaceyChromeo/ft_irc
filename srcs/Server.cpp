@@ -96,8 +96,8 @@ string Server::get_passwd(string passwd) const{
 
 string	Server::get_channel(string channel) const{
 	size_t	pos = channel.find("#") + 1;
-	size_t	cr = channel.substr(pos, channel.length()).find("\r");
-	string	chan = channel.substr(pos, cr);
+	//size_t	cr = channel.substr(pos, channel.find(" ")).find("\r");
+	string	chan = channel.substr(pos, channel.find(" "));
 	return (chan);
 }
 
@@ -174,7 +174,6 @@ int Server::findChannel(string name) {
 	int i = 0;
 	while (it != ite) {
 		if ((*it).get_name() == name) {
-
 			return (i);
 		}
 		it++;
@@ -215,16 +214,14 @@ int Server::addUserToChannel(string name, User &user) {
 }
 
 int Server::removeUserFromChannel(string name, User& user){
+
+	name = name.substr(0, name.find(" "));
 	int i = findChannel(name);
 
 	if (i > -1 && (_channel[i].get_size() > 0)) {
-		int index = _channel[i].findUser(user.getNick());
-		cout << "USER :" << user.getNick() << endl;
-		cout << "INDEX :" << index << endl;
-		vector<string>::const_iterator begin = _channel[i].get_nicks().begin();
-		_channel[i].get_nicks().erase(begin + index);
 		_channel[i].removeUser(user.getNick());
 		_channel[i].set_size(_channel[i].get_size() - 1);
+		_channel[i].print_users();
 		return (0);
 	}
 	return (-1);
@@ -312,45 +309,11 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		int i = findUser(fd);
 		if (i == -1)
 			return EOL;
-		int j = findChannel(chan_name);
-		string nickname = _user[i].getNick();
-		string username = _user[i].getUser();
-		string hostname = _user[i].getHost();
-		string nicks;
-		if (_channel[j].get_size() == 0) {
-			_channel[j].set_nick("@" + nickname + " ");
-		}
-		else {
-			_channel[j].set_nick(nickname + " ");
-		}
-		for (size_t i = 0; i <= _channel[j].get_size(); i++)
-			nicks.append(_channel[j].get_nick(i));
-		cout << "NICKS :" << nicks << endl;
-		//string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 hkrifa = #toto :\r\n" + ":localhost 366 hkrifa #toto :End of NAMES list\r\n");
-		string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#toto\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + nicks + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
-		string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
-		for(size_t k = 0; k <= _channel[j].get_size(); k++) {
-			if (_channel[j].get_size() == 0) {
-				send(fd, join.c_str(), join.size(), 0);
-				cout << "---------------------- out ----------------------\n" << join;
-			}
-			else {
-				if (k < _channel[j].get_size()) {
-					int user_fd = _channel[j].get_user()[k].getFd();
-					send(user_fd, join2.c_str(), join2.size(), 0);
-					cout << "---------------------- out ----------------------\n" << join2;
-				}
-			}
-		}
-		if (_channel[j].get_size() != 0)
-			send(fd, join.c_str(), join.size(), 0);
-		if (addNewChannel(chan_name, _user[i])) {
-			addUserToChannel(chan_name, _user[i]);
-		}
+		joinCmd(this, _user[i], fd, chan_name);
 	}
 	else if (cmd_nbr == OPEN){
 		int	i = findUser(fd);
-	
+
 		if (i == -1)
 			return EOL;
 		else

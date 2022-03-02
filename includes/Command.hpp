@@ -19,3 +19,4 @@ string	partCmd(Server* srv, string buf, User& user);
 string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd);
 string	userhostCmd(Server* srv, string buf, User& user);
 string	topicCmd(Server* srv, User& usr);
+void    joinCmd(Server *srv, User &user, int fd, string chan_name);
