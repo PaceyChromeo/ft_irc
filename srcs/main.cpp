@@ -119,7 +119,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 		for (int i = 0; i < srv.getSize(); i++){
 			try{
 				if (srv.getUser()[i].getNick() == nick){
-					sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, User(nick, "", "", "localhost", "+i", event_fd, 0, 0, 0));
+					sendMessage("ERR_NICKNAMEINUSE", changelist, event_fd, User(nick, "", "", "localhost", "", event_fd, 0, 0, 0));
 					usleep(WAIT);
 					return (-1);
 				}
@@ -215,7 +215,7 @@ int main(int ac, char **av) {
 		for (int i = 0; i < new_event; i++){
 			event_fd = eventlist[i].ident;
 			if (eventlist[i].flags & EV_EOF){
-				cout << "Client has disconnect\n";
+				cout << "Client Quit\r\n";
 				srv.removeUser(event_fd);
 				close(event_fd);
 			}

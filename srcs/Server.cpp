@@ -44,7 +44,10 @@ string Server::get_err_msg(string error, string cmd, const User& user) const {
 }
 
 string Server::get_rpl_msg(string reply, const User& user) const {
-	if (reply == "PING"){
+	if (reply == "WELCOME"){
+		return (string(":localhost 001 " + user.getNick() + EOL + "... Registration done!" + EOL + "\"Welcome to the Internet Relay Chat Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "\"" + EOL));
+	}
+	else if (reply == "PING"){
 		return (string(":localhost PONG :" + user.getHost() + EOL));
 	}
 	else if (reply == "PONG") {
@@ -259,14 +262,23 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 	else if (cmd_nbr == NICK){
 		int	i = findUser(fd);
 
-		if (i == -1)
-			return EOL;
-		else
+		if (i == -1){
+			string newNick = get_nickname(buf);
+			if (newNick.size() == 0)
+				return(get_err_msg("ERR_NONICKNAMEGIVEN", "", User()));
+			_user.push_back(User("nick", "", "", "localhost", "", fd, 1, 0, 0));
+		}
+		else if (_user[i].getConnectionThird() == 1)
 			return(nickCmd(this, buf, _user[i]));
+		return EOL;
 	}
 
 	else if (cmd_nbr == USER){
-		return (userCmd(this));
+		int	i = findUser(fd);
+
+		if (i == -1){
+			return (userCmd(this, buf));
+		}
 	}
 
 	else if (cmd_nbr == MODE){

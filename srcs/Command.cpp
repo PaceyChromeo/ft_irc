@@ -25,9 +25,25 @@ string	nickCmd(Server* srv, string buf, User& user){
 	}
 }
 
-string	userCmd(Server* srv){
-	(void)srv;
-	return ("USER CMD\r\n");
+string	userCmd(Server* srv, string buf){
+	string					username = srv->get_username(buf);
+	string					realname = srv->get_realname(buf);
+	vector<User>::iterator	it = srv->getUser().begin();
+	vector<User>::iterator	ite = srv->getUser().end();
+
+	for ( ; it != ite; it++){
+		if ((*it).getConnectionSecond() == 0){
+			(*it).setReal(realname);
+			(*it).setUser(username);
+			(*it).setConnectionSecond(1);
+			(*it).setConnectionThird(1);
+			cout << "OK\n";
+			break ;
+		}
+	}
+	if (it != ite && (*it).getConnectionThird() == 1)
+		return (srv->get_rpl_msg("WELCOME", (*it)));
+	return (EOL);
 }
 
 void	actualizeMode(char sign, char mode, User& user){
@@ -208,9 +224,9 @@ string	quitCmd(string buf, User& usr){
 
 		begin = buf.find(":") + 1;
 		mess = buf.substr(begin, buf.size());
-		toSend = ":" + usr.getNick() + "!" + usr.getUser() + "@" + usr.getHost() + " QUIT :" + mess + EOL;
+		toSend = ":localhost ERROR :" + mess + EOL;
 		send(usr.getFd(), toSend.c_str(), toSend.size(), 0);
-		return (EOL);
+		return (toSend);
 }
 
 string	userhostCmd(Server* srv, string buf, User& user){
