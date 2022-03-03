@@ -96,12 +96,32 @@ string whoCmd(Server* srv, User& user){
 }
 
 string kickCmd(Server* srv, User& user, string buf){
-	(void)srv;
-	string nick = user.getNick();
-	string usr = user.getUser();
-	string host = user.getHost();
-	string toSend = ":" + nick + "!" + usr + host + " " + buf + EOL;
-	return (toSend);
+    //verifier si le user un est ChanOperator
+    int startMsg = buf.find(":") + 1;
+    string msg = buf.substr(startMsg, (buf.length() - startMsg) - 2);
+    std::cout << "buf :" << buf << std::endl;
+    std::cout << "msg :" << msg << std::endl;
+    string newBuf = buf.substr(6, buf.length() - 8);
+    std::cout << "newBuf :" << newBuf << std::endl;
+    int space = newBuf.find(" ");
+    string chanName = newBuf.substr(0, space);
+    std::cout << "chanName :" << chanName << std::endl;
+    int endNick = newBuf.find(":");
+    string nick = newBuf.substr(space + 1, (endNick - space) - 2);
+    std::cout << "nick :" << nick << std::endl;
+    string toSend;
+    int userIndex = srv->findNick(nick);
+    if (userIndex == -1)
+        toSend = ":localhost 401 <" + nick + "> :No such nick/channel" + EOL; 
+    else
+        toSend = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + "KICK #" + chanName + " " + nick + " :" + msg + EOL;
+    cout << "send : " << toSend << endl;
+    cout << "user nick :" << user.getNick() << endl;
+    send(srv->getUser()[userIndex].getFd(), toSend.c_str(), toSend.length(), 0);
+    send(user.getFd(), toSend.c_str(), toSend.length(), 0);
+	srv->removeUserFromChannel(chanName, srv->getUser()[userIndex]); //suppression du user qui a ete kick
+
+    return ("KICK CMD\r\n");
 }
 
 string openCmd(Server* srv, User& user){
