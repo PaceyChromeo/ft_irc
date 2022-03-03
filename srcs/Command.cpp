@@ -30,6 +30,29 @@ string	userCmd(Server* srv){
 	return ("USER CMD\r\n");
 }
 
+void	actualizeMode(char sign, char mode, User& user){
+	string newMode = user.getMode();
+
+	if (sign == '-'){
+		for (size_t i = 0; i < newMode.size(); i++){
+			if (newMode[i] == mode){
+				newMode.erase(newMode.begin()+i);
+				user.setMode(newMode);
+				return ;
+			}
+		}
+	}
+	else{
+		for(size_t i = 0; i < newMode.size(); i++){
+			if (newMode[i] == mode){
+				return ;
+			}
+		}
+		newMode.push_back(mode);
+		user.setMode(newMode);
+	}
+}
+
 string	modeCmd(Server* srv, string buf, User& user, int fd){
 	string	toSend;
 	string	tmp;
@@ -56,14 +79,17 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 	else{
 		size_t	begin = buf.find(" ") + 1;
 		size_t	end = 0;
-		size_t	sign;
-		string	nick;
+		size_t	pos;
 		string	mode;
+		string	nick;
+		char	sign;
+		char	m;
 
 		if (buf.find("+") < BUF_SIZE || buf.find("-") < BUF_SIZE){
-			buf.find("+") < BUF_SIZE ? sign = buf.find("+") : sign = buf.find("-");
+			buf.find("+") < BUF_SIZE ? pos = buf.find("+") : pos = buf.find("-");
+			buf.find("+") < BUF_SIZE ? sign = '+' : sign = '-';
 			end = buf.substr(begin, buf.size()).find(" ");
-			mode = buf.substr(sign, buf.find("\r") - 2);
+			mode = buf.substr(pos, buf.find("\r") - 2);
 			if (mode.find("\r")< BUF_SIZE)
 				mode = mode.substr(0, mode.size() - 2);
 		}
@@ -78,6 +104,8 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 			|| mode.find("w") < BUF_SIZE || mode.find("r") < BUF_SIZE
 			|| mode.find("o") < BUF_SIZE || mode.find("O") < BUF_SIZE
 			|| mode.find("s") < BUF_SIZE )){
+			m = mode.at(1);
+			actualizeMode(sign, m, user);
 			toSend = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + buf + EOL;
 		}
 		else
@@ -96,7 +124,6 @@ string whoCmd(Server* srv, User& user){
 }
 
 string kickCmd(Server* srv, User& user, string buf){
-    //verifier si le user un est ChanOperator
     int startMsg = buf.find(":") + 1;
     string msg = buf.substr(startMsg, (buf.length() - startMsg) - 2);
     std::cout << "buf :" << buf << std::endl;
@@ -119,9 +146,9 @@ string kickCmd(Server* srv, User& user, string buf){
     cout << "user nick :" << user.getNick() << endl;
     send(srv->getUser()[userIndex].getFd(), toSend.c_str(), toSend.length(), 0);
     send(user.getFd(), toSend.c_str(), toSend.length(), 0);
-	srv->removeUserFromChannel(chanName, srv->getUser()[userIndex]); //suppression du user qui a ete kick
 
-    return ("KICK CMD\r\n");
+    //verifier si le user un est ChanOperator
+    return ("toSend");
 }
 
 string openCmd(Server* srv, User& user){
@@ -172,6 +199,18 @@ string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 		}
 	}
 	return EOL;
+}
+
+string	quitCmd(string buf, User& usr){
+		string	toSend;
+		string	mess;
+		size_t	begin;
+
+		begin = buf.find(":") + 1;
+		mess = buf.substr(begin, buf.size());
+		toSend = ":" + usr.getNick() + "!" + usr.getUser() + "@" + usr.getHost() + " QUIT :" + mess + EOL;
+		send(usr.getFd(), toSend.c_str(), toSend.size(), 0);
+		return (EOL);
 }
 
 string	userhostCmd(Server* srv, string buf, User& user){

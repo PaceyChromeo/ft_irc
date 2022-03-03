@@ -6,7 +6,7 @@ class User {
 
 	public:
 
-		User() : _nickname(""), _username(""), _realname(""), _host("localhost"), _mode("+i"), _fd(0) { _connection[0] = 0; _connection[1] = 0; _connection[2] = 0;};
+		User() : _nickname(""), _username(""), _realname(""), _host("localhost"), _mode(""), _fd(0) { _connection[0] = 0; _connection[1] = 0; _connection[2] = 0;};
 
 		User(std::string nick, std::string user, std::string realname, std::string host, std::string mode, int fd, int one, int two, int three) : _nickname(nick), _username(user), _realname(realname), _host(host), _mode(mode), _fd(fd) {
 			_connection[0] = one;

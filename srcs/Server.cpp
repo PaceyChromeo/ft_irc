@@ -39,12 +39,6 @@ string Server::get_err_msg(string error, string cmd, const User& user) const {
 	else if (error == "ERR_PASSWDMISMATCH"){
 		return (string(":localhost 464 :Password incorrect\r\n"));
 	}
-	// else if (error == "ERR_UMODEUNKNOWNFLAG"){
-	// 	return (string(":localhost 501 :Unknown MODE flag\r\n"));
-	// }
-	// else if (error == "ERR_USERSDONTMATCH"){
-	// 	return (string(":localhost 502 :Cannot change mode for other users\r\n"));
-	// }
 	else
 		return (0);
 }
@@ -163,8 +157,6 @@ void	Server::createChannels() {
 	_channel.push_back(Channel("lobby"));
 	_channel.push_back(Channel("toto"));
 	_channel.push_back(Channel("mago"));
-
-	
 }
 
 int Server::findChannel(string name) {
@@ -353,12 +345,10 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			return (privmsgCmd(this, buf, _user, fd));
 	}
 	else if (cmd_nbr == QUIT){
-		int i = findUser(fd);
+		int		i = findUser(fd);
 
-		if (i > -1){
-			close(_user[i].getFd());
-			removeUser(fd);
-		}
+		if (i > -1)
+			quitCmd(buf, _user[i]);
 		return EOL;
 	}
 	else if (cmd_nbr == userhost){
