@@ -266,7 +266,8 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			string newNick = get_nickname(buf);
 			if (newNick.size() == 0)
 				return(get_err_msg("ERR_NONICKNAMEGIVEN", "", User()));
-			_user.push_back(User("nick", "", "", "localhost", "", fd, 1, 0, 0));
+			_user.push_back(User(newNick, "", "", "localhost", "", fd, 1, 0, 0));
+			return ("New nick created\r\n");
 		}
 		else if (_user[i].getConnectionThird() == 1)
 			return(nickCmd(this, buf, _user[i]));
@@ -275,10 +276,11 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 
 	else if (cmd_nbr == USER){
 		int	i = findUser(fd);
-
-		if (i == -1){
-			return (userCmd(this, buf));
-		}
+	
+		if (i == -1)
+			return ("User not found\r\n");
+		else
+			return (userCmd(this, buf, _user[i]));
 	}
 
 	else if (cmd_nbr == MODE){

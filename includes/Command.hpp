@@ -10,7 +10,7 @@ class User;
 
 string	passCmd(Server* srv, string buf, User& user);
 string	nickCmd(Server* srv, string buf, User& user);
-string	userCmd(Server* srv, string buf);
+string	userCmd(Server* srv, string buf, User& user);
 void	actualizeMode(string mode, User& user);
 string	modeCmd(Server* srv, string buf, User& user, int fd);
 string	whoCmd(Server* srv, User& user);

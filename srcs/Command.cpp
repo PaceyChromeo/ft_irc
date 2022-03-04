@@ -25,25 +25,15 @@ string	nickCmd(Server* srv, string buf, User& user){
 	}
 }
 
-string	userCmd(Server* srv, string buf){
-	string					username = srv->get_username(buf);
-	string					realname = srv->get_realname(buf);
-	vector<User>::iterator	it = srv->getUser().begin();
-	vector<User>::iterator	ite = srv->getUser().end();
+string	userCmd(Server* srv, string buf, User& usr){
+	string	user = srv->get_username(buf);
+	string	real = srv->get_realname(buf);
 
-	for ( ; it != ite; it++){
-		if ((*it).getConnectionSecond() == 0){
-			(*it).setReal(realname);
-			(*it).setUser(username);
-			(*it).setConnectionSecond(1);
-			(*it).setConnectionThird(1);
-			cout << "OK\n";
-			break ;
-		}
-	}
-	if (it != ite && (*it).getConnectionThird() == 1)
-		return (srv->get_rpl_msg("WELCOME", (*it)));
-	return (EOL);
+	usr.setUser(user);
+	usr.setReal(real);
+	usr.setConnectionSecond(1);
+	usr.setConnectionThird(1);
+	return (srv->get_rpl_msg("WELCOME", usr));
 }
 
 void	actualizeMode(char sign, char mode, User& user){
