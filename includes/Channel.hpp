@@ -36,7 +36,7 @@ class Channel {
 		vector<string>	get_nicks() const { return this->_nick; }
 		void			set_nick(string nick) { _nick.push_back(nick); }
 		const User&		get_user(int index) const { return this->_user[index]; }
-		void			set_user(User &usr) { _user.push_back(usr); } 
+		void			set_user(User &usr) { _user.push_back(usr); _size++;} 
 		int				findUser(int fd) const;
 		int				findUser(string name) const;
 		int				removeUser(string name);
