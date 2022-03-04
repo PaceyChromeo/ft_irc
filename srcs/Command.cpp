@@ -159,12 +159,6 @@ string kickCmd(Server* srv, User& user, string buf){
 	return (EOL);
 }
 
-string openCmd(Server* srv, User& user){
-	(void)srv;
-	(void)user;
-	return ("OPEN CMD\r\n");
-}
-
 string	partCmd(Server* srv, string buf, User& usr){
 	string	nick = usr.getNick();
 	string	user = usr.getUser();
