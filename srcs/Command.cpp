@@ -180,13 +180,14 @@ string	partCmd(Server* srv, string buf, User& usr){
 }
 
 string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
-	if(buf.find("#") < BUF_SIZE){
+	if (buf.find("#") < BUF_SIZE){
 		string chan_name = buf.substr((buf.find("#") + 1), (buf.find(" ") - 1));
 		chan_name.erase(chan_name.size() - 2);
 		int j = srv->findChannel(chan_name);
-		srv->getChannel(j).send_msg_to_channel(fd, buf);
+		if (j != -1)
+			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
 	}
-	else{
+	else {
 		int whiteSpace = buf.find(" ");
 		int colon = buf.find(":");
 		int index = srv->findUser(fd);
@@ -235,36 +236,33 @@ string	userhostCmd(Server* srv, string buf, User& user){
 	return EOL;
 }
 
-void joinCmd(Server *srv, User &user, int fd, string chan_name) {
+void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 	string nickname = user.getNick();
 	string username = user.getUser();
 	string hostname = user.getHost();
 	string nicks;
+	(void)srv;
 
-	if (srv->addNewChannel(chan_name, user)) {
-		srv->addUserToChannel(chan_name, user);
-	}
-	int j = srv->findChannel(chan_name);
-	if (srv->getChannel(j).get_size() == 1) {
-		srv->getChannel(j).setOperatorMode(fd, '+', 'o');
+	if (channel.get_size() == 1) {
+		channel.setOperatorMode(fd, '+', 'o');
 	}	
-	for (size_t i = 0; i < srv->getChannel(j).get_size(); i++) {
-		if (srv->getChannel(j).get_user(i).getMode().find("o") < BUF_SIZE)
+	for (size_t i = 0; i < channel.get_size(); i++) {
+		if (channel.get_user(i).getMode().find("o") < BUF_SIZE)
 			nicks += "@";
-		nicks.append(srv->getChannel(j).get_user()[i].getNick() + " ");
-		//if (i != srv->getChannel(j).get_size() - 1)
-		//	nicks += " ";
+		nicks.append(channel.get_user()[i].getNick());
+		if (i != channel.get_size() - 1)
+			nicks += " ";
 	}
-	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + chan_name + "\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + nicks + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
-	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
-	for(size_t i = 0; i < srv->getChannel(j).get_size(); i++) {
-		if (srv->getChannel(j).get_size() == 1) {
+	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + channel.get_name() + "\r\n" + ":localhost 353 " + username + " = #" + channel.get_name() + " :" + nicks + EOL + ":localhost 366 " + username + " #" + channel.get_name() + " :End of NAMES list\r\n");
+	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + channel.get_name() + "\r\n");
+	for(size_t i = 0; i < channel.get_size(); i++) {
+		if (channel.get_size() == 1) {
 			send(fd, join.c_str(), join.size(), 0);
 			cout << "---------------------- out 1 ----------------------\n" << join;
 		}
 		else {
-			if (i < srv->getChannel(j).get_size()) {
-				int user_fd = srv->getChannel(j).get_user()[i].getFd();
+			if (i < channel.get_size()) {
+				int user_fd = channel.get_user()[i].getFd();
 				if (user_fd != fd) {
 					send(user_fd, join2.c_str(), join2.size(), 0);
 					cout << "---------------------- out 2 ----------------------\n" << join2;
@@ -272,7 +270,7 @@ void joinCmd(Server *srv, User &user, int fd, string chan_name) {
 			}
 		}
 	}
-	if (srv->getChannel(j).get_size() > 1) {
+	if (channel.get_size() > 1) {
 		send(fd, join.c_str(), join.size(), 0);
 		cout << "---------------------- out 3 ----------------------\n" << join;
 	}

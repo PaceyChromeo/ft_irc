@@ -86,9 +86,19 @@ int	Channel::removeUser(string name){
 	return (-1);
 }
 
-void Channel::send_msg_to_channel(int fd, string buf) const {
+void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
 	int i = findUser(fd);
-	string toSend = ":" + _user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " " + buf;
+	string toSend;
+	size_t	pos = buf.find(":") + 1;
+	string msg = buf.substr(pos);
+
+	cout << "MSG : " << msg << endl;
+	if (chan_name == "mago" && msg == "hello"){
+		toSend = ":Magolebot!Magolebot@localhost PRIVMSG #mago :Je m'appelle Magomed\r\n";
+	}
+	else{
+		toSend = ":" + _user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " " + buf;
+	}
 	if (_user.size() > 1) {
 		for (size_t j = 0; j < _user.size(); j++) {
 			int user_fd = _user[j].getFd();

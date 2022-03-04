@@ -167,6 +167,7 @@ int Server::findChannel(string name) {
 
 	int i = 0;
 	while (it != ite) {
+		cout << "CHAN NAME : " << (*it).get_name() << endl;
 		if ((*it).get_name() == name) {
 			return (i);
 		}
@@ -309,9 +310,16 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
 		chan_name.erase(chan_name.size() - 2);
 		int i = findUser(fd);
+
 		if (i == -1)
 			return EOL;
-		joinCmd(this, _user[i], fd, chan_name);
+		if (chan_name == "mago")
+			addUserToChannel(chan_name, _user[0]); 
+		if (addNewChannel(chan_name, _user[i])) {
+			addUserToChannel(chan_name, _user[i]);
+		}
+		int	j = findChannel(chan_name);
+		joinCmd(this, _user[i], fd, _channel[j]);
 	}
 	else if (cmd_nbr == PART){
 		int	i = findUser(fd);

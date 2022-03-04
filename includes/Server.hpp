@@ -67,6 +67,7 @@ class Server{
 			User	magolebot("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
 			_user.push_back(magolebot);
 			_size++;
+			createChannels();
 		};
 
 		string	get_err_msg(string error, string cmd, const User& user) const;
