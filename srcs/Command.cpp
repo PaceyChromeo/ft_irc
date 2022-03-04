@@ -124,31 +124,35 @@ string whoCmd(Server* srv, User& user){
 }
 
 string kickCmd(Server* srv, User& user, string buf){
-    int startMsg = buf.find(":") + 1;
-    string msg = buf.substr(startMsg, (buf.length() - startMsg) - 2);
-    std::cout << "buf :" << buf << std::endl;
-    std::cout << "msg :" << msg << std::endl;
-    string newBuf = buf.substr(6, buf.length() - 8);
-    std::cout << "newBuf :" << newBuf << std::endl;
-    int space = newBuf.find(" ");
-    string chanName = newBuf.substr(0, space);
-    std::cout << "chanName :" << chanName << std::endl;
-    int endNick = newBuf.find(":");
-    string nick = newBuf.substr(space + 1, (endNick - space) - 2);
-    std::cout << "nick :" << nick << std::endl;
-    string toSend;
-    int userIndex = srv->findNick(nick);
-    if (userIndex == -1)
-        toSend = ":localhost 401 <" + nick + "> :No such nick/channel" + EOL; 
-    else
-        toSend = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + "KICK #" + chanName + " " + nick + " :" + msg + EOL;
-    cout << "send : " << toSend << endl;
-    cout << "user nick :" << user.getNick() << endl;
-    send(srv->getUser()[userIndex].getFd(), toSend.c_str(), toSend.length(), 0);
-    send(user.getFd(), toSend.c_str(), toSend.length(), 0);
 
-    //verifier si le user un est ChanOperator
-    return ("toSend");
+	string toSend;
+    if(user.getMode().find("o") < user.getMode().size()) {
+		int startMsg = buf.find(":") + 1;
+		string msg = buf.substr(startMsg, (buf.length() - startMsg) - 2);
+		string newBuf = buf.substr(6, buf.length() - 8);
+		int space = newBuf.find(" ");
+		string chanName = newBuf.substr(0, space);
+		int endNick = newBuf.find(":");
+		string nick = newBuf.substr(space + 1, (endNick - space) - 2);
+		int userIndex = srv->findNick(nick);
+		int chanIndex = srv->findChannel(chanName);
+		if (userIndex == -1) {
+			toSend = ":localhost 401 <" + nick + "> :No such nick/channel" + EOL; 
+			send(user.getFd(), toSend.c_str(), toSend.length(), 0);
+		}
+		else {
+			toSend = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + "KICK #" + chanName + " " + nick + " :" + msg + EOL;
+			for (size_t i = 0; i < srv->getChannel()[chanIndex].get_size(); i++){
+				send(srv->getUser()[i].getFd(), toSend.c_str(), toSend.length(), 0);
+			}
+			srv->getChannel()[chanIndex].print_users();
+			srv->removeUserFromChannel(chanName, srv->getChannel()[chanIndex].get_user()[userIndex]);
+			srv->getChannel()[chanIndex].print_users();
+		}
+	}
+	else
+		cout << "not operator " << endl;
+	return ("KICK CMD\r\n");
 }
 
 string openCmd(Server* srv, User& user){
