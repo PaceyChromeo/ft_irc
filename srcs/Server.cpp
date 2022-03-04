@@ -191,9 +191,9 @@ int	Server::addNewChannel(string name, User &user) {
 		User newuser(user);
 		chan.set_user(newuser);
 		_channel.push_back(chan);
-		return (1);
+		return (0);
 	}
-	return (0);
+	return (1);
 }
 
 int Server::addUserToChannel(string name, User &user) {

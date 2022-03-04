@@ -253,14 +253,14 @@ void joinCmd(Server *srv, User &user, int fd, string chan_name) {
 	for (size_t i = 0; i < srv->getChannel(j).get_size(); i++) {
 		if (i == 0)
 			nicks += "@";
-		nicks.append(srv->getChannel(j).get_user()[i].getNick());
-		if (i != srv->getChannel(j).get_size() - 1)
-			nicks += " ";
+		nicks.append(srv->getChannel(j).get_user()[i].getNick() + " ");
+		//if (i != srv->getChannel(j).get_size() - 1)
+		//	nicks += " ";
 	}
 	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + chan_name + "\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + nicks + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
 	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
 	for(size_t k = 0; k < srv->getChannel(j).get_size(); k++) {
-		if (srv->getChannel(j).get_size() == 2) {
+		if (srv->getChannel(j).get_size() == 1) {
 			send(fd, join.c_str(), join.size(), 0);
 			cout << "---------------------- out 1 ----------------------\n" << join;
 		}
@@ -274,7 +274,7 @@ void joinCmd(Server *srv, User &user, int fd, string chan_name) {
 			}
 		}
 	}
-	if (srv->getChannel(j).get_size() > 2) {
+	if (srv->getChannel(j).get_size() > 1) {
 		send(fd, join.c_str(), join.size(), 0);
 		cout << "---------------------- out 3 ----------------------\n" << join;
 	}
