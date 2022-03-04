@@ -31,9 +31,6 @@ void Channel::print_users() const {
 			cout << "_user->host: >>> " << (*it).getHost() << endl;
 			cout << "_user->mode: >>> " << (*it).getMode() << endl;
 			cout << "_user->fd: >>> " << (*it).getFd() << endl;
-			// cout << "_user->nickname set : >>> " << ((*it).getConnectionFirst() == 1 ? TRUE : FALSE) << endl;
-			// cout << "_user->username set : >>> " << ((*it).getConnectionSecond() == 1 ? TRUE : FALSE) << endl;
-			// cout << "_user->registered : >>> " << ((*it).getConnectionThird() == 1 ? TRUE : FALSE) << endl;
 			cout << "******************************\n\n";
 			it++;
 			i++;

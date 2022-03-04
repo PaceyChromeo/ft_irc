@@ -29,14 +29,12 @@ enum e_cmd {	PASS,
 				WHO,
 				KICK,
 				JOIN,
-				OPEN,
 				PART,
 				PING,
 				PONG,
 				PRIVMSG,
 				QUIT,
 				userhost,
-				TOPIC,
 				WHOIS };
 
 using namespace std;
@@ -66,7 +64,9 @@ class Server{
 				perror("Listen error");
 				exit(EXIT_FAILURE);
 			}
-			
+			User	magolebot("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
+			_user.push_back(magolebot);
+			_size++;
 		};
 
 		string	get_err_msg(string error, string cmd, const User& user) const;

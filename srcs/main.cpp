@@ -205,7 +205,6 @@ int main(int ac, char **av) {
 	enable_read(tmp_kevent, changelist, srv.getListen());
 	eventlist.reserve(MAX_FD);
 	line = 0;
-	srv.createChannels();
 	while (true){
 		if ((new_event = kevent(kq, changelist.begin().base(), changelist.size(), eventlist.begin().base(), MAX_FD, NULL)) < 0){
 			perror("Kevent error");

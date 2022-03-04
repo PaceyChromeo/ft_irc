@@ -27,7 +27,7 @@ void Server::print_users() const {
 }
 
 string Server::get_err_msg(string error, string cmd, const User& user) const {
-	if (error == "ERR_NICKNAMEGIVEN"){
+	if (error == "ERR_NONICKNAMEGIVEN"){
 		return (string(":localhost 431 :No nickname given\r\n"));
 	}
 	else if (error == "ERR_NICKNAMEINUSE"){
@@ -40,7 +40,7 @@ string Server::get_err_msg(string error, string cmd, const User& user) const {
 		return (string(":localhost 464 :Password incorrect\r\n"));
 	}
 	else
-		return (0);
+		return ("");
 }
 
 string Server::get_rpl_msg(string reply, const User& user) const {
@@ -93,7 +93,6 @@ string Server::get_passwd(string passwd) const{
 
 string	Server::get_channel(string channel) const{
 	size_t	pos = channel.find("#") + 1;
-	//size_t	cr = channel.substr(pos, channel.find(" ")).find("\r");
 	string	chan = channel.substr(pos, channel.find(" "));
 	return (chan);
 }
@@ -192,9 +191,9 @@ int	Server::addNewChannel(string name, User &user) {
 		User newuser(user);
 		chan.set_user(newuser);
 		_channel.push_back(chan);
-		return (0);
+		return (1);
 	}
-	return (-1);
+	return (0);
 }
 
 int Server::addUserToChannel(string name, User &user) {
@@ -223,25 +222,23 @@ int Server::removeUserFromChannel(string name, User& user){
 }
 
 int	Server::findCommand(string buf) const {
-	char		*args[16] = {	(char *)"PASS",
+	char		*args[14] = {	(char *)"PASS",
 								(char *)"NICK",
 								(char *)"USER",
 								(char *)"MODE",
 								(char *)"WHO",
 								(char *)"KICK",
 								(char *)"JOIN",
-								(char *)"OPEN",
 								(char *)"PART",
 								(char *)"PING",
 								(char *)"PONG",
 								(char *)"PRIVMSG",
 								(char *)"QUIT",
 								(char *)"userhost",
-								(char *)"TOPIC",
 								(char *)"WHOIS"};
 	int i = 0;
 	
-	while (i < 16){
+	while (i < 14){
 		if (buf.find(args[i]) < BUF_SIZE)
 			return (i);
 		i++;
@@ -291,7 +288,7 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			return (modeCmd(this, buf, _user[i], fd));
 	}
 
-	else if (cmd_nbr == WHO) {
+	else if (cmd_nbr == WHO){
 		int i = findUser(fd);
 
 		if (i == -1)
@@ -308,7 +305,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		else
 			return (kickCmd(this, _user[i], buf));
 	}
-
 	else if (cmd_nbr == JOIN) {
 		string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
 		chan_name.erase(chan_name.size() - 2);
@@ -316,14 +312,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		if (i == -1)
 			return EOL;
 		joinCmd(this, _user[i], fd, chan_name);
-	}
-	else if (cmd_nbr == OPEN){
-		int	i = findUser(fd);
-
-		if (i == -1)
-			return EOL;
-		else
-			return (openCmd(this, _user[i]));
 	}
 	else if (cmd_nbr == PART){
 		int	i = findUser(fd);
@@ -372,14 +360,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			return EOL;
 		else
 			return (userhostCmd(this, buf, _user[i]));
-	}
-	else if (cmd_nbr == TOPIC){
-		int	i = findUser(fd);
-	
-		if (i == -1)
-			return EOL;
-		else
-			return(topicCmd(this, _user[i]));
 	}
 	else if (cmd_nbr == WHOIS){
 		int index = findUser(fd);
