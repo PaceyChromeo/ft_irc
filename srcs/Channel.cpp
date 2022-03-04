@@ -38,21 +38,34 @@ void Channel::print_users() const {
 	}
 }
 
-// string::iterator    Channel::findUser(string name) const {
-// 	std::vector<User>::const_iterator    it = _user.begin();
-// 	std::vector<User>::const_iterator    ite = _user.end();
-// 	int i = 0;
+void	Channel::actualizeMode(char sign, char mode, User& user) {
+	string newMode = user.getMode();
 
-// 	while (it != ite){
-// 		if ((*it).getNick() == name){
-// 			return (it);
-// 		}
-// 		it++;
-// 		i++;
-// 	}
-// 	return (-1);
-// }
+	if (sign == '-'){
+		for (size_t i = 0; i < newMode.size(); i++){
+			if (newMode[i] == mode){
+				newMode.erase(newMode.begin()+i);
+				user.setMode(newMode);
+				return ;
+			}
+		}
+	}
+	else{
+		for(size_t i = 0; i < newMode.size(); i++){
+			if (newMode[i] == mode){
+				return ;
+			}
+		}
+		newMode.push_back(mode);
+		user.setMode(newMode);
+	}
+}
 
+void Channel::setOperatorMode(int fd, char sign, char mode) {
+	int i = findUser(fd);
+	actualizeMode(sign, mode, _user[i]);
+
+}
 
 int	Channel::findUser(string name) const{
 	for (size_t i = 0; i <= _nick.size(); i++){
