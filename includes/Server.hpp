@@ -64,8 +64,9 @@ class Server{
 				perror("Listen error");
 				exit(EXIT_FAILURE);
 			}
-			User	magomed("Mago", "Mago", "Mago", "localhost", "o", 0, 1, 1, 1);
-			_user.push_back(magomed);
+			User	magolebot("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
+			_user.push_back(magolebot);
+			_size++;
 		};
 
 		string	get_err_msg(string error, string cmd, const User& user) const;

@@ -199,14 +199,7 @@ string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 			return EOL;
 		string user = buf.substr(whiteSpace + 1, (colon - whiteSpace) - 2);
 		string mmm = buf.substr(colon + 1, buf.length() - (colon + 3));
-		
 		string msg = ":" + usr[index].getNick() + "!" + usr[index].getUser() + "@localhost " + buf + EOL;
-		if (user == "Mago"){
-			if (mmm == "introduce"){
-				string welcome = "Bonjour je m'appelle Magomed et j'aime le caca\r\n";
-				return (welcome);
-			}
-		}
 		int userIndex = srv->findNick(user);
 		if (userIndex < 0)
 			return EOL;
@@ -260,7 +253,9 @@ void joinCmd(Server *srv, User &user, int fd, string chan_name) {
 	for (size_t i = 0; i < srv->getChannel(j).get_size(); i++) {
 		if (i == 0)
 			nicks += "@";
-		nicks.append(srv->getChannel(j).get_user()[i].getNick() + " ");
+		nicks.append(srv->getChannel(j).get_user()[i].getNick());
+		if (i != srv->getChannel(j).get_size() - 1)
+			nicks += " ";
 	}
 	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + chan_name + "\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + nicks + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
 	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");

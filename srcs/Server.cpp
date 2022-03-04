@@ -93,7 +93,6 @@ string Server::get_passwd(string passwd) const{
 
 string	Server::get_channel(string channel) const{
 	size_t	pos = channel.find("#") + 1;
-	//size_t	cr = channel.substr(pos, channel.find(" ")).find("\r");
 	string	chan = channel.substr(pos, channel.find(" "));
 	return (chan);
 }
@@ -192,9 +191,9 @@ int	Server::addNewChannel(string name, User &user) {
 		User newuser(user);
 		chan.set_user(newuser);
 		_channel.push_back(chan);
-		return (0);
+		return (1);
 	}
-	return (-1);
+	return (0);
 }
 
 int Server::addUserToChannel(string name, User &user) {
