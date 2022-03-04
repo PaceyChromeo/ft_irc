@@ -64,9 +64,9 @@ class Server{
 				perror("Listen error");
 				exit(EXIT_FAILURE);
 			}
-			User	magolebot("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
-			_user.push_back(magolebot);
-			_size++;
+			// User	magolebot("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
+			// _user.push_back(magolebot);
+			// _size++;
 			createChannels();
 		};
 
@@ -105,7 +105,7 @@ class Server{
 		Channel&		getChannel(int i) { return this->_channel[i]; };
 		int				getPassEnable() const { return this->_passEnable; };
 		void			setPassEnable(int enable) { this->_passEnable = enable; };
-		int				getSize() const { return this->_size; };
+		int				getSize() const { return this->_user.size(); };
 		string			getPassword() const { return this->_password; };
 
 	private:

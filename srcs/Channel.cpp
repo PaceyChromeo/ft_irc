@@ -68,9 +68,9 @@ void Channel::setOperatorMode(int fd, char sign, char mode) {
 }
 
 int	Channel::findUser(string name) const{
-	for (size_t i = 0; i <= _nick.size(); i++){
-		cout << _nick[i];
-		if (name + " " == _nick[i])
+	for (size_t i = 0; i <= _user.size(); i++){
+		cout << _user[i].getNick() << endl;
+		if (name == _user[i].getNick())
 			return (i);
 	}
 	return (-1);
@@ -104,7 +104,7 @@ void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
 			int user_fd = _user[j].getFd();
 			if (user_fd != fd) {
 				send(user_fd, toSend.c_str(), toSend.size(), 0);
-				cout << "---------------------- out ----------------------" << toSend << endl;
+				cout << "---------------------- out ----------------------\n" << toSend << endl;
 			}
 		}
 	}

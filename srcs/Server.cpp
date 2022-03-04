@@ -166,6 +166,7 @@ int Server::findChannel(string name) {
 	std::vector<Channel>::iterator ite = _channel.end();
 
 	int i = 0;
+	cout << ">>>>" << name << endl;
 	while (it != ite) {
 		cout << "CHAN NAME : " << (*it).get_name() << endl;
 		if ((*it).get_name() == name) {
@@ -178,7 +179,7 @@ int Server::findChannel(string name) {
 }
 
 int	Server::findUserInChannel(int chan_index, string nick) const {
-	for (size_t i = 0; i < _channel[chan_index].get_size(); i++){
+	for (size_t i = 0; i < _channel[chan_index].get_users_size(); i++){
 		if (_channel[chan_index].get_user(i).getNick() == nick){
 			return (i);
 		}
@@ -202,7 +203,6 @@ int Server::addUserToChannel(string name, User &user) {
 
 	if (i > -1){
 		_channel[i].set_user(user);
-		_channel[i].set_size(_channel[i].get_size() + 1);
 		return (0);
 	}
 	return (-1);
@@ -213,9 +213,8 @@ int Server::removeUserFromChannel(string name, User& user){
 	name = name.substr(0, name.find(" "));
 	int i = findChannel(name);
 
-	if (i > -1 && (_channel[i].get_size() > 0)) {
+	if (i > -1 && (_channel[i].get_users_size() > 0)) {
 		_channel[i].removeUser(user.getNick());
-		_channel[i].set_size(_channel[i].get_size() - 1);
 		_channel[i].print_users();
 		return (0);
 	}
