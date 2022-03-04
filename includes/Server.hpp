@@ -101,7 +101,7 @@ class Server{
 		vector<User>	getUser() const { return this->_user; };
 		const User&		getUser(int i) const { return this->_user[i]; };
 		vector<Channel>	getChannel() const { return this->_channel; };
-		const Channel&	getChannel(int i) const { return this->_channel[i]; };
+		Channel&		getChannel(int i) { return this->_channel[i]; };
 		int				getPassEnable() const { return this->_passEnable; };
 		void			setPassEnable(int enable) { this->_passEnable = enable; };
 		int				getSize() const { return this->_size; };

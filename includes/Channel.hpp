@@ -42,6 +42,8 @@ class Channel {
 		int				removeUser(string name);
 		void			send_msg_to_channel(int fd, string buf) const;
 		void			print_users() const;
+		void			actualizeMode(char sign, char mode, User& user);
+		void			setOperatorMode(int fd, char sign, char mode);
 
 
 	private:

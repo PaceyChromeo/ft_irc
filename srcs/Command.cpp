@@ -76,9 +76,11 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 		buf = buf.substr(begin, end);
 	}
 	if (buf.find("#") < BUF_SIZE){
+		cout << "ICI " << endl;
 		if (buf.rfind(" b") < BUF_SIZE) {
 			toSend = ":localhost 368 " + user.getNick() + " #toto :End of channel ban list" + EOL;
 		}
+		else 
 		else
 			toSend = ":localhost 324 " + user.getNick() + " #toto" + EOL;
 	}
@@ -253,21 +255,24 @@ void joinCmd(Server *srv, User &user, int fd, string chan_name) {
 		srv->addUserToChannel(chan_name, user);
 	}
 	int j = srv->findChannel(chan_name);
+	if (srv->getChannel(j).get_size() == 1) {
+		srv->getChannel(j).setOperatorMode(fd, '+', 'o');
+	}	
 	for (size_t i = 0; i < srv->getChannel(j).get_size(); i++) {
-		if (i == 0)
+		if (srv->getChannel(j).get_user(i).getMode().find("o") < BUF_SIZE)
 			nicks += "@";
 		nicks.append(srv->getChannel(j).get_user()[i].getNick() + " ");
 	}
 	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + chan_name + "\r\n" + ":localhost 353 " + username + " = #" + chan_name + " :" + nicks + EOL + ":localhost 366 " + username + " #" + chan_name + " :End of NAMES list\r\n");
 	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + chan_name + "\r\n");
-	for(size_t k = 0; k < srv->getChannel(j).get_size(); k++) {
+	for(size_t i = 0; i < srv->getChannel(j).get_size(); i++) {
 		if (srv->getChannel(j).get_size() == 1) {
 			send(fd, join.c_str(), join.size(), 0);
 			cout << "---------------------- out ----------------------\n" << join;
 		}
 		else {
-			if (k < srv->getChannel(j).get_size()) {
-				int user_fd = srv->getChannel(j).get_user()[k].getFd();
+			if (i < srv->getChannel(j).get_size()) {
+				int user_fd = srv->getChannel(j).get_user()[i].getFd();
 				if (user_fd != fd) {
 					send(user_fd, join2.c_str(), join2.size(), 0);
 					cout << "---------------------- out ----------------------\n" << join2;
