@@ -162,16 +162,18 @@ string whoCmd(Server* srv, User& user){
 string kickCmd(Server* srv, User& user, string buf){
 
 	string toSend;
-    if(user.getMode().find("o") < user.getMode().size()) {
-		int startMsg = buf.find(":") + 1;
-		string msg = buf.substr(startMsg, (buf.length() - startMsg) - 2);
-		string newBuf = buf.substr(6, buf.length() - 8);
-		int space = newBuf.find(" ");
-		string chanName = newBuf.substr(0, space);
-		int endNick = newBuf.find(":");
-		string nick = newBuf.substr(space + 1, (endNick - space) - 2);
-		int userIndex = srv->findNick(nick);
-		int chanIndex = srv->findChannel(chanName);
+	int startMsg = buf.find(":") + 1;
+	string msg = buf.substr(startMsg, (buf.length() - startMsg) - 2);
+	string newBuf = buf.substr(6, buf.length() - 8);
+	int space = newBuf.find(" ");
+	string chanName = newBuf.substr(0, space);
+	int endNick = newBuf.find(":");
+	string nick = newBuf.substr(space + 1, (endNick - space) - 2);
+	int chanIndex = srv->findChannel(chanName);
+	int userIndex = srv->findNick(nick);
+	int userIndexx = srv->getChannel()[chanIndex].findUser(user.getNick());
+    int op = srv->getChannel()[chanIndex].get_user()[userIndexx].getMode().find("o");
+    if(op != -1) {
 		if (userIndex == -1) {
 			toSend = ":localhost 401 <" + nick + "> :No such nick/channel" + EOL; 
 			send(user.getFd(), toSend.c_str(), toSend.length(), 0);
