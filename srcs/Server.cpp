@@ -323,8 +323,9 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 
 		if (i == -1)
 			return EOL;
-		if (chan_name == "mago")
-			addUserToChannel(chan_name, _user[0]); 
+		if (chan_name == "mago"){
+			addUserToChannel(chan_name, _magolebot);
+		}
 		if (addNewChannel(chan_name, _user[i]) == 0) {
 			addUserToChannel(chan_name, _user[i]);
 		}

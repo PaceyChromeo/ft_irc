@@ -297,33 +297,32 @@ void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 		if (i != channel.get_users_size() - 1)
 			nicks += " ";
 	}
-	string mago = ":Magolebot!Magolebot@localhost JOIN :#toto\r\n";
+	//string mago(":Magolebot!Magolebot@localhost JOIN :#mago\r\n:localhost 353 Magolebot = #" + channel.get_name() + " :" + nicks + EOL + ":localhost 366 Magolebot #" + channel.get_name() + " :End of NAMES list\r\n");
 	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + channel.get_name() + "\r\n" + ":localhost 353 " + username + " = #" + channel.get_name() + " :" + nicks + EOL + ":localhost 366 " + username + " #" + channel.get_name() + " :End of NAMES list\r\n");
+	//string mago2(":Magolebot!Magolebot@localhost JOIN :#" + channel.get_name() + EOL);
 	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + channel.get_name() + "\r\n");
 	for(size_t i = 0; i < channel.get_users_size(); i++) {
 		if (channel.get_users_size() == 1) {
 			send(fd, join.c_str(), join.size(), 0);
-			send(fd, mago.c_str(), mago.size(), 0);
+			//send(fd, mago.c_str(), mago.size(), 0);
 			cout << "---------------------- out 1 ----------------------\n" << join;
-			cout << mago << endl;
+			//cout << mago << endl;
 		}
 		else {
 			if (i < channel.get_users_size()) {
 				int user_fd = channel.get_user()[i].getFd();
 				if (user_fd != fd) {
 					send(user_fd, join2.c_str(), join2.size(), 0);
-					send(user_fd, mago.c_str(), mago.size(), 0);
+					//send(user_fd, mago2.c_str(), mago2.size(), 0);
 					cout << "---------------------- out 2 ----------------------\n" << join2;
-					cout << mago << endl;
+					//cout << mago2 << endl;
 				}
 			}
 		}
 	}
 	if (channel.get_users_size() > 1) {
 		send(fd, join.c_str(), join.size(), 0);
-		send(fd, mago.c_str(), mago.size(), 0);
 		cout << "---------------------- out 3 ----------------------\n" << join;
-		cout << mago << endl;
 	}
 }
 

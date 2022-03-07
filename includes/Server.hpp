@@ -64,7 +64,7 @@ class Server{
 				perror("Listen error");
 				exit(EXIT_FAILURE);
 			}
-			// User	magolebot("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
+			_magolebot = User("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
 			// _user.push_back(magolebot);
 			// _size++;
 			createChannels();
@@ -117,6 +117,7 @@ class Server{
 		string				_password;
 		vector<User>		_user;
 		vector<Channel>		_channel;
+		User				_magolebot;
 		struct sockaddr_in	_serv_addr;
 		
 		Server() {};

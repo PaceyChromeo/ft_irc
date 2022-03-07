@@ -86,28 +86,44 @@ int	Channel::removeUser(string name){
 	return (-1);
 }
 
+string	AmaMago(string question){
+	size_t sp = question.find(" ");
+	string qs;
+
+	if (sp < question.length()){
+		qs = question.substr(sp + 1);
+	}
+	else
+		return ("");
+	if (qs == "Presente-toi\r\n")
+		return ("Je m'appelle Magomed\r\n");
+	else
+		return ("Je suis debile alors tu peux me poser que ces questions la:\r\n********************\r\nPresente-toi\r\nQuel est ton pays prefere\r\nQuel age as-tu\r\nQue penses-tu de la guerre en Ukraine\r\nQuel est ton orientation sexuelle\r\n********************\r\n\r\nP.S. : si tu dis \"Vive la Russie\" je te kicke!\r\n");
+}
+
 void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
 	int i = findUser(fd);
-	string toSend;
+	string	toSend;
+	string	mago;
 	size_t	pos = buf.find(":") + 1;
-	string msg = buf.substr(pos);
-	string mago = ":Magolebot!Magolebot@localhost PRIVMSG #mago :Je m'appelle Magomed\r\n";
-	//cout << "MSG : " << msg << endl;
-	if (chan_name == "mago" && msg == "hello"){
-		toSend = ":Magolebot!Magolebot@localhost PRIVMSG #mago :Je m'appelle Magomed\r\n";
-	}
-	else{
-		toSend = ":" + _user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " " + buf;
-	}
+	string	msg = buf.substr(pos);
+	cout << "MSG : " << msg << "$" << endl;
+	toSend = ":" + _user[i].getNick() + "!" + _user[i].getUser() + "@" + _user[i].getHost() + " " + buf;
 	if (_user.size() > 1) {
 		for (size_t j = 0; j < _user.size(); j++) {
 			int user_fd = _user[j].getFd();
 			if (user_fd != fd) {
 				send(user_fd, toSend.c_str(), toSend.size(), 0);
-				send(user_fd, mago.c_str(), mago.size(), 0);
+				//send(user_fd, mago.c_str(), mago.size(), 0);
 				cout << "---------------------- out ----------------------\n" << toSend << endl;
-				cout << mago << endl;
+			if (chan_name == "mago" && msg.find("Magolebot:") < msg.length()){
+				mago = ":Magolebot!Magolebot@localhost PRIVMSG #mago :" + AmaMago(msg);
+				if (!mago.empty())
+					send(user_fd,mago.c_str(), mago.size(), 0);
 			}
+			}
+			if (user_fd == fd && chan_name == "mago")
+				send(user_fd, mago.c_str(), mago.size(), 0);
 		}
 	}
 }
