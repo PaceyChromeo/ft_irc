@@ -65,6 +65,7 @@ string Server::get_nickname(string nick) const{
 	size_t	cr = nick.substr(pos, nick.size()).find("\r");
 	string	nickname = nick.substr(pos, cr);
 
+	nickname = eraseCrAndNl(nickname);
 	return (nickname);
 }
 
@@ -73,6 +74,7 @@ string Server::get_username(string user) const{
 	size_t	sp = user.substr(pos, user.size()).find(" ");
 	string	username = user.substr(pos, sp);
 
+	username = eraseCrAndNl(username);
 	return (username);
 }
 
@@ -81,6 +83,7 @@ string Server::get_realname(string real) const{
 	size_t	cr = real.substr(colon, real.size()).find("\r");
 	string	realname = real.substr(colon, cr);
 
+	realname = eraseCrAndNl(realname);
 	return (realname);
 }
 
@@ -88,12 +91,16 @@ string Server::get_passwd(string passwd) const{
 	size_t	pos = passwd.find("PASS ") + 5;
 	size_t	cr = passwd.substr(pos, passwd.size()).find("\r");
 	string	pswd = passwd.substr(pos, cr);
+
+	pswd = eraseCrAndNl(pswd);
 	return (pswd);
 }
 
 string	Server::get_channel(string channel) const{
 	size_t	pos = channel.find("#") + 1;
 	string	chan = channel.substr(pos, channel.find(" "));
+
+	chan = eraseCrAndNl(chan);
 	return (chan);
 }
 
@@ -166,9 +173,7 @@ int Server::findChannel(string name) {
 	std::vector<Channel>::iterator ite = _channel.end();
 
 	int i = 0;
-	cout << ">>>>" << name << endl;
 	while (it != ite) {
-		cout << "CHAN NAME : " << (*it).get_name() << endl;
 		if ((*it).get_name() == name) {
 			return (i);
 		}
@@ -193,9 +198,9 @@ int	Server::addNewChannel(string name, User &user) {
 		User newuser(user);
 		chan.set_user(newuser);
 		_channel.push_back(chan);
-		return (0);
+		return (-1);
 	}
-	return (1);
+	return (0);
 }
 
 int Server::addUserToChannel(string name, User &user) {
@@ -306,15 +311,21 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			return (kickCmd(this, _user[i], buf));
 	}
 	else if (cmd_nbr == JOIN) {
-		string chan_name = buf.substr((buf.find("#") + 1), (buf.find("\n") - 2));
-		chan_name.erase(chan_name.size() - 2);
+		string chan_name;
+		size_t hashtag = buf.find("#");
+		if (hashtag < buf.length()){
+			chan_name = buf.substr(hashtag + 1);
+			chan_name = eraseCrAndNl(chan_name);
+		}
+		else
+			return (EOL);
 		int i = findUser(fd);
 
 		if (i == -1)
 			return EOL;
 		if (chan_name == "mago")
 			addUserToChannel(chan_name, _user[0]); 
-		if (addNewChannel(chan_name, _user[i])) {
+		if (addNewChannel(chan_name, _user[i]) == 0) {
 			addUserToChannel(chan_name, _user[i]);
 		}
 		int	j = findChannel(chan_name);

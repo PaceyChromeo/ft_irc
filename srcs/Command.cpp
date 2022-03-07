@@ -210,9 +210,14 @@ string	partCmd(Server* srv, string buf, User& usr){
 
 string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 	if (buf.find("#") < BUF_SIZE){
-		string chan_name = buf.substr((buf.find("#") + 1), (buf.find(" ") - 1));
-		chan_name.erase(chan_name.size() - 2);
+		string	chan_name;
+		size_t	hashtag = buf.find("#");
+		chan_name = buf.substr(hashtag + 1);
+		hashtag = chan_name.find(" ");
+		chan_name = chan_name.substr(0, hashtag);
+		chan_name = eraseCrAndNl(chan_name);
 		int j = srv->findChannel(chan_name);
+		srv->getChannel(j).print_users();
 		if (j != -1)
 			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
 	}
@@ -307,4 +312,14 @@ void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 		send(fd, join.c_str(), join.size(), 0);
 		cout << "---------------------- out 3 ----------------------\n" << join;
 	}
+}
+
+string&	eraseCrAndNl(string& buf){
+	size_t	pos = buf.find("\r");
+	if (pos < buf.length())
+		buf.erase(pos, 1);
+	pos = buf.find("\n");
+	if (pos < buf.length())
+		buf.erase(pos, 1);
+	return (buf);
 }
