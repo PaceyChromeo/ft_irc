@@ -84,36 +84,36 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 			toSend = ":localhost 368 " + user.getNick() + " #" + chan_name + " :End of channel ban list" + EOL;
 		}
 		else if ((begin = buf.find("+")) < BUF_SIZE || (begin = buf.find("-")) < BUF_SIZE) {
-			if (user.getMode().find("o") < BUF_SIZE) {
+			int idx_chan = srv->findChannel(chan_name);
+			int idx_op = srv->getChannel(idx_chan).findUser(fd);
+			if (idx_op == -1)
+				return (EOL);
+			if (srv->getChannel(idx_chan).get_user(idx_op).getMode().find("o") < BUF_SIZE) {
 				char mode = 0;
-				if (tmp.find("o") < BUF_SIZE)
-					mode = 'o';
-				else
-					return EOL;
 				char sign;
 				int nbegin = buf.rfind(" ") + 1;
 				string nickname = buf.substr(nbegin, buf.find("\r"));
 				int nend = nickname.find("\r");
 				nickname = nickname.substr(0, nend);
-				int idx_chan = srv->findChannel(chan_name);
-				cout << idx_chan << endl;
 				int idx_user = srv->getChannel(idx_chan).findUser(nickname);
 				if (idx_user == -1)
 					return (EOL);
-				buf.find("+") < BUF_SIZE ? sign = '+' : sign = '-';
-				string tmp = buf.substr(begin, buf.find(" "));
 				int ufd = srv->getChannel(idx_chan).get_user()[idx_user].getFd();
+				buf.find("+") < BUF_SIZE ? sign = '+' : sign = '-';
+				string temp = buf.substr(begin, buf.find(" "));
+				if (temp.find("o") < BUF_SIZE)
+					mode = 'o';
 				srv->getChannel(idx_chan).setOperatorMode(ufd, sign, mode);
 				string sendMode = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + buf + EOL;
 				for(size_t i = 0; i < srv->getChannel(idx_chan).get_users_size(); i++) {
 					int user_fd = srv->getChannel(idx_chan).get_user()[i].getFd();
 					send(user_fd, sendMode.c_str(), sendMode.size(), 0);
 					cout << "---------------------- out ----------------------\n" << sendMode;
-				}
 				toSend = EOL;
 			}
+			}
 			else
-				return EOL;
+				return (EOL);
 		}
 		else
 			toSend = ":localhost 324 " + user.getNick() + " #" + chan_name  + EOL;
@@ -288,11 +288,9 @@ void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 	if (channel.get_users_size() == 1) {
 		channel.setOperatorMode(fd, '+', 'o');
 	}
-	cout << "SIZE " << channel.get_users_size() << endl;
 	channel.print_users();
 	for (size_t i = 0; i < channel.get_users_size(); i++) {
 		if (channel.get_user(i).getMode().find("o") < BUF_SIZE) {
-			cout << "HEY" << endl;
 			nicks += "@";
 		}
 		nicks.append(channel.get_user()[i].getNick());

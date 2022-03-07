@@ -216,7 +216,6 @@ int Server::addUserToChannel(string name, User &user) {
 int Server::removeUserFromChannel(string name, User& user){
 
 	name = name.substr(0, name.find(" "));
-	cout << "NAME CHAN :" << name << endl;
 	int i = findChannel(name);
 
 	if (i > -1 && (_channel[i].get_users_size() > 0)) {
