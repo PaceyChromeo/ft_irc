@@ -87,7 +87,7 @@ int	Channel::removeUser(string name){
 }
 
 string	AmaMago(string question){
-	size_t sp = question.find(" ");
+	size_t sp = question.find(":");
 	string qs;
 
 	if (sp < question.length()){
@@ -97,8 +97,22 @@ string	AmaMago(string question){
 		return ("");
 	if (qs == "Presente-toi\r\n")
 		return ("Je m'appelle Magomed\r\n");
+	else if (qs == "Quel est ton pays prefere\r\n")
+		return ("la Tchetchenie, mais je trouve aussi que la Tunisie est un tres beau pays, Vive la Tunisie!\r\n");
+	else if (qs == "Quel age as-tu")
+		return ("Ca s'fait pas de demander.\r\n");
+	else if (qs == "Quelle est ton orientation sexuelle\r\n")
+		return ("Je suis un cabinet\r\n");
+	else if (qs == "Que represente Vim pour toi?\r\n")
+		return ("Vraiment de la merde!!\r\n");
+	else if (qs == "Que penses-tu de Github?\r\n")
+		return ("C'est un tres bon moyen de reussir le cursus 42, demandez a Haroun ;-)\r\n");
+	else if (qs == "Qui est Haroun pour toi?\r\n")
+		return ("Une source d'inspiration\r\n");
+	else if (qs == "Vive la Russie\r\n")
+		return ("Kick");
 	else
-		return ("Je suis debile alors tu peux me poser que ces questions la:\n********************\nPresente-toi\nQuel est ton pays prefere\nQuel age as-tu\r\nQue penses-tu de la guerre en Ukraine\r\nQuel est ton orientation sexuelle\r\n********************\r\n\r\nP.S. : si tu dis \"Vive la Russie\" je te kicke!\r\n");
+		return ("Je suis limite intellectuellement alors tu peux me poser que ces questions la:\n********************\nPresente-toi\nQuel est ton pays prefere\nQuel age as-tu\nQuel est ton orientation sexuelle\nQue represente Vim pour toi?\nQue penses-tu de Github?\nQui est Haroun pour toi?\n*******************\n\nP.S. : si tu dis \"Vive la Russie\" je te kicke!\r\n");
 }
 
 void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
@@ -115,10 +129,13 @@ void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
 			if (user_fd != fd) {
 				send(user_fd, toSend.c_str(), toSend.size(), 0);
 				cout << "---------------------- out ----------------------\n" << toSend << endl;
-			if (chan_name == "mago" && msg.find("Magolebot: ") < msg.length()){
+			if (chan_name == "mago" && msg.find("Magolebot:") < msg.length()){
 				mago = ":Magolebot!Magolebot@localhost PRIVMSG #mago :" + AmaMago(msg);
-				if (!mago.empty())
+				if (!mago.empty()) {
+					if (mago.find("Kick") < mago.length())
+						mago = ":Magolebot!Magolebot@localhost KICK #mago " + _user[i].getNick() + " :je t'avais prevenu!\r\n";
 					send(user_fd,mago.c_str(), mago.size(), 0);
+				}
 			}
 			}
 			if (user_fd == fd && chan_name == "mago")
