@@ -246,6 +246,9 @@ int main(int ac, char **av) {
 						close(event_fd);
 					}
 				}
+				else if (bufRecv.find("\r\n") > bufRecv.length()){
+					
+				}
 				else{
 					cmd = srv.findCommand(bufRecv);
 					toSend = srv.performCommand(cmd, bufRecv, event_fd);
