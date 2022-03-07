@@ -146,7 +146,7 @@ int	performConnection(string buffer, Server& srv, vector<struct kevent>& changel
 }
 
 int	connectionProcess(int fd, string buf, size_t size, Server& srv, vector<struct kevent>& changelist){
-	char 	tmp[BUF_SIZE];
+	char 	tmp[BUF_SIZE + 1];
 	ssize_t	bytes_read;
 	string	toSend,
 			buffer;
@@ -184,12 +184,12 @@ int main(int ac, char **av) {
 	}
 	int							port = atoi(av[1]),
 								client_len,
-								line,
 								kq,
 								new_event,
 								event_fd,
 								connection_fd,
-								cmd;
+								cmd,
+								welcome;
 	string						password(av[2]),
 								bufRecv;
 	Server						srv(port, password);
@@ -204,7 +204,7 @@ int main(int ac, char **av) {
 	kq = kqueue();
 	enable_read(tmp_kevent, changelist, srv.getListen());
 	eventlist.reserve(MAX_FD);
-	line = 0;
+	welcome = 0;
 	while (true){
 		if ((new_event = kevent(kq, changelist.begin().base(), changelist.size(), eventlist.begin().base(), MAX_FD, NULL)) < 0){
 			perror("Kevent error");
@@ -255,13 +255,21 @@ int main(int ac, char **av) {
 						close(event_fd);
 					}
 				}
-				else{
-					cmd = srv.findCommand(bufRecv);
-					toSend = srv.performCommand(cmd, bufRecv, event_fd);
-					cout << "---------------------- out ----------------------\n" << toSend;
-					if (!toSend.empty()){
-						enable_write(tmp_kevent, changelist, event_fd);
+				else if (bufRecv.find("\n") > bufRecv.length()){
+					char tmp[BUF_SIZE + 1];
+					while (bufRecv.find("\n") > bufRecv.length() && bufRecv.length() < BUF_SIZE){
+						bytes_read = recv(event_fd, tmp, eventlist[i].data, 0);
+						bufRecv.append(tmp);
+						memset(tmp, 0, BUF_SIZE);
 					}
+					bufRecv = eraseCrAndNl(bufRecv);
+				}
+				cmd = srv.findCommand(bufRecv);
+				if (cmd > -1)
+					toSend = srv.performCommand(cmd, bufRecv, event_fd);
+				cout << "---------------------- out ----------------------\n" << toSend;
+				if (!toSend.empty()){
+					enable_write(tmp_kevent, changelist, event_fd);
 				}
 			}
 		}

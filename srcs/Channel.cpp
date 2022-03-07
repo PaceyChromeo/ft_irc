@@ -96,12 +96,12 @@ string	AmaMago(string question){
 	else
 		return ("");
 	if (qs == "Presente-toi\r\n")
-		return ("Je m'appelle Magomed\r\n");
-	else if (qs == "Quel est ton pays prefere\r\n")
+		return ("Je m'appelle Magomed, je suis pour l'egalite des sexes et je milite pour la reconnaissance des droits LGBT\r\n");
+	else if (qs == "Quel est ton pays prefere?\r\n")
 		return ("la Tchetchenie, mais je trouve aussi que la Tunisie est un tres beau pays, Vive la Tunisie!\r\n");
-	else if (qs == "Quel age as-tu")
+	else if (qs == "Quel age as-tu?\r\n")
 		return ("Ca s'fait pas de demander.\r\n");
-	else if (qs == "Quelle est ton orientation sexuelle\r\n")
+	else if (qs == "Quelle est ton orientation sexuelle?\r\n")
 		return ("Je suis un cabinet\r\n");
 	else if (qs == "Que represente Vim pour toi?\r\n")
 		return ("Vraiment de la merde!!\r\n");
@@ -112,7 +112,7 @@ string	AmaMago(string question){
 	else if (qs == "Vive la Russie\r\n")
 		return ("Kick");
 	else
-		return ("Je suis limite intellectuellement alors tu peux me poser que ces questions la:\n********************\nPresente-toi\nQuel est ton pays prefere\nQuel age as-tu\nQuel est ton orientation sexuelle\nQue represente Vim pour toi?\nQue penses-tu de Github?\nQui est Haroun pour toi?\n*******************\n\nP.S. : si tu dis \"Vive la Russie\" je te kicke!\r\n");
+		return ("Je suis limite intellectuellement alors tu peux me poser que quelques questions (P.S. : si tu ecris \"Vive la Russie\" je te kicke!)\r\n");
 }
 
 void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {

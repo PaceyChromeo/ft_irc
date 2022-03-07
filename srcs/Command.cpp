@@ -248,6 +248,38 @@ string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 	return EOL;
 }
 
+string	noticeCmd(Server* srv, string buf, vector<User>& usr, int fd){
+	if (buf.find("#") < BUF_SIZE){
+		string	chan_name;
+		size_t	hashtag = buf.find("#");
+		chan_name = buf.substr(hashtag + 1);
+		hashtag = chan_name.find(" ");
+		chan_name = chan_name.substr(0, hashtag);
+		chan_name = eraseCrAndNl(chan_name);
+		int j = srv->findChannel(chan_name);
+		srv->getChannel(j).print_users();
+		if (j != -1)
+			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
+	}
+	else {
+		int whiteSpace = buf.find(" ");
+		int colon = buf.find(":");
+		int index = srv->findUser(fd);
+		if (index == -1)
+			return EOL;
+		string user = buf.substr(whiteSpace + 1, (colon - whiteSpace) - 2);
+		string mmm = buf.substr(colon + 1, buf.length() - (colon + 3));
+		string msg = ":" + usr[index].getNick() + "!" + usr[index].getUser() + "@localhost " + buf + EOL;
+		int userIndex = srv->findNick(user);
+		if (userIndex < 0)
+			return EOL;
+		else {
+			send(usr[userIndex].getFd(), msg.c_str(), msg.length(), 0);
+		}
+	}
+	return EOL;	
+}
+
 string	quitCmd(string buf, User& usr){
 		string	toSend;
 		string	mess;

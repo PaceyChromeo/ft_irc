@@ -227,13 +227,14 @@ int Server::removeUserFromChannel(string name, User& user){
 }
 
 int	Server::findCommand(string buf) const {
-	char		*args[14] = {	(char *)"PASS",
+	char		*args[15] = {	(char *)"PASS",
 								(char *)"NICK",
 								(char *)"USER",
 								(char *)"MODE",
 								(char *)"WHO",
 								(char *)"KICK",
 								(char *)"JOIN",
+								(char *)"NOTICE",
 								(char *)"PART",
 								(char *)"PING",
 								(char *)"PONG",
@@ -243,7 +244,7 @@ int	Server::findCommand(string buf) const {
 								(char *)"WHOIS"};
 	int i = 0;
 	
-	while (i < 14){
+	while (i < 15){
 		if (buf.find(args[i]) < BUF_SIZE)
 			return (i);
 		i++;
@@ -309,6 +310,14 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			return EOL;
 		else
 			return (kickCmd(this, _user[i], buf));
+	}
+	else if (cmd_nbr == NOTICE){
+		int	i = findUser(fd);
+	
+		if (i == -1)
+			return EOL;
+		else
+			return (noticeCmd(this, buf, _user, fd));	
 	}
 	else if (cmd_nbr == JOIN) {
 		string	chan_name;
