@@ -98,7 +98,7 @@ string	AmaMago(string question){
 	if (qs == "Presente-toi\r\n")
 		return ("Je m'appelle Magomed\r\n");
 	else
-		return ("Je suis debile alors tu peux me poser que ces questions la:\r\n********************\r\nPresente-toi\r\nQuel est ton pays prefere\r\nQuel age as-tu\r\nQue penses-tu de la guerre en Ukraine\r\nQuel est ton orientation sexuelle\r\n********************\r\n\r\nP.S. : si tu dis \"Vive la Russie\" je te kicke!\r\n");
+		return ("Je suis debile alors tu peux me poser que ces questions la:\n********************\nPresente-toi\nQuel est ton pays prefere\nQuel age as-tu\r\nQue penses-tu de la guerre en Ukraine\r\nQuel est ton orientation sexuelle\r\n********************\r\n\r\nP.S. : si tu dis \"Vive la Russie\" je te kicke!\r\n");
 }
 
 void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
@@ -114,9 +114,8 @@ void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
 			int user_fd = _user[j].getFd();
 			if (user_fd != fd) {
 				send(user_fd, toSend.c_str(), toSend.size(), 0);
-				//send(user_fd, mago.c_str(), mago.size(), 0);
 				cout << "---------------------- out ----------------------\n" << toSend << endl;
-			if (chan_name == "mago" && msg.find("Magolebot:") < msg.length()){
+			if (chan_name == "mago" && msg.find("Magolebot: ") < msg.length()){
 				mago = ":Magolebot!Magolebot@localhost PRIVMSG #mago :" + AmaMago(msg);
 				if (!mago.empty())
 					send(user_fd,mago.c_str(), mago.size(), 0);
