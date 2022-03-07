@@ -312,8 +312,9 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			return (kickCmd(this, _user[i], buf));
 	}
 	else if (cmd_nbr == JOIN) {
-		string chan_name;
-		size_t hashtag = buf.find("#");
+		string	chan_name;
+		size_t	hashtag = buf.find("#");
+		bool	added = false;
 		if (hashtag < buf.length()){
 			chan_name = buf.substr(hashtag + 1);
 			chan_name = eraseCrAndNl(chan_name);
@@ -324,8 +325,9 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 
 		if (i == -1)
 			return EOL;
-		if (chan_name == "mago"){
+		if (chan_name == "mago" && added == false){
 			addUserToChannel(chan_name, _magolebot);
+			added = true;
 		}
 		if (addNewChannel(chan_name, _user[i]) == 0) {
 			addUserToChannel(chan_name, _user[i]);
