@@ -62,7 +62,7 @@ void	actualizeMode(char sign, char mode, User& user){
 string	modeCmd(Server* srv, string buf, User& user, int fd){
 	string	toSend;
 	string	tmp;
-	size_t cbegin;
+	size_t	cbegin;
 
 	if (buf.find("WHOIS") < BUF_SIZE){
 		tmp = srv->get_rpl_msg("WHOIS", user);
@@ -84,30 +84,36 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 			toSend = ":localhost 368 " + user.getNick() + " #" + chan_name + " :End of channel ban list" + EOL;
 		}
 		else if ((begin = buf.find("+")) < BUF_SIZE || (begin = buf.find("-")) < BUF_SIZE) {
-			char sign;
-			char mode = 0;
-			int nbegin = buf.rfind(" ") + 1;
-			string nickname = buf.substr(nbegin, buf.find("\r"));
-			int nend = nickname.find("\r");
-			nickname = nickname.substr(0, nend);
-			int idx_chan = srv->findChannel(chan_name);
-			cout << idx_chan << endl;
-			int idx_user = srv->getChannel(idx_chan).findUser(nickname);
-			if (idx_user == -1)
-				return (EOL);
-			buf.find("+") < BUF_SIZE ? sign = '+' : sign = '-';
-			string tmp = buf.substr(begin, buf.find(" "));
-			if (tmp.find("o") < BUF_SIZE)
-				mode = 'o';
-			int ufd = srv->getChannel(idx_chan).get_user()[idx_user].getFd();
-			srv->getChannel(idx_chan).setOperatorMode(ufd, sign, mode);
-			string sendMode = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + buf + EOL;
-			for(size_t i = 0; i < srv->getChannel(idx_chan).get_users_size(); i++) {
-				int user_fd = srv->getChannel(idx_chan).get_user()[i].getFd();
-				send(user_fd, sendMode.c_str(), sendMode.size(), 0);
-				cout << "---------------------- out ----------------------\n" << sendMode;
+			if (user.getMode().find("o") < BUF_SIZE) {
+				char mode = 0;
+				if (tmp.find("o") < BUF_SIZE)
+					mode = 'o';
+				else
+					return EOL;
+				char sign;
+				int nbegin = buf.rfind(" ") + 1;
+				string nickname = buf.substr(nbegin, buf.find("\r"));
+				int nend = nickname.find("\r");
+				nickname = nickname.substr(0, nend);
+				int idx_chan = srv->findChannel(chan_name);
+				cout << idx_chan << endl;
+				int idx_user = srv->getChannel(idx_chan).findUser(nickname);
+				if (idx_user == -1)
+					return (EOL);
+				buf.find("+") < BUF_SIZE ? sign = '+' : sign = '-';
+				string tmp = buf.substr(begin, buf.find(" "));
+				int ufd = srv->getChannel(idx_chan).get_user()[idx_user].getFd();
+				srv->getChannel(idx_chan).setOperatorMode(ufd, sign, mode);
+				string sendMode = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + buf + EOL;
+				for(size_t i = 0; i < srv->getChannel(idx_chan).get_users_size(); i++) {
+					int user_fd = srv->getChannel(idx_chan).get_user()[i].getFd();
+					send(user_fd, sendMode.c_str(), sendMode.size(), 0);
+					cout << "---------------------- out ----------------------\n" << sendMode;
+				}
+				toSend = EOL;
 			}
-			toSend = EOL;
+			else
+				return EOL;
 		}
 		else
 			toSend = ":localhost 324 " + user.getNick() + " #" + chan_name  + EOL;
@@ -212,9 +218,14 @@ string	partCmd(Server* srv, string buf, User& usr){
 
 string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 	if (buf.find("#") < BUF_SIZE){
-		string chan_name = buf.substr((buf.find("#") + 1), (buf.find(" ") - 1));
-		chan_name.erase(chan_name.size() - 2);
+		string	chan_name;
+		size_t	hashtag = buf.find("#");
+		chan_name = buf.substr(hashtag + 1);
+		hashtag = chan_name.find(" ");
+		chan_name = chan_name.substr(0, hashtag);
+		chan_name = eraseCrAndNl(chan_name);
 		int j = srv->findChannel(chan_name);
+		srv->getChannel(j).print_users();
 		if (j != -1)
 			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
 	}
@@ -288,25 +299,42 @@ void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 		if (i != channel.get_users_size() - 1)
 			nicks += " ";
 	}
+	string mago = ":Magolebot!Magolebot@localhost JOIN :#toto\r\n";
 	string join(":" + nickname + "!" + username + "@" + hostname + " JOIN :#" + channel.get_name() + "\r\n" + ":localhost 353 " + username + " = #" + channel.get_name() + " :" + nicks + EOL + ":localhost 366 " + username + " #" + channel.get_name() + " :End of NAMES list\r\n");
 	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + channel.get_name() + "\r\n");
 	for(size_t i = 0; i < channel.get_users_size(); i++) {
 		if (channel.get_users_size() == 1) {
 			send(fd, join.c_str(), join.size(), 0);
+			send(fd, mago.c_str(), mago.size(), 0);
 			cout << "---------------------- out 1 ----------------------\n" << join;
+			cout << mago << endl;
 		}
 		else {
 			if (i < channel.get_users_size()) {
 				int user_fd = channel.get_user()[i].getFd();
 				if (user_fd != fd) {
 					send(user_fd, join2.c_str(), join2.size(), 0);
+					send(user_fd, mago.c_str(), mago.size(), 0);
 					cout << "---------------------- out 2 ----------------------\n" << join2;
+					cout << mago << endl;
 				}
 			}
 		}
 	}
 	if (channel.get_users_size() > 1) {
 		send(fd, join.c_str(), join.size(), 0);
+		send(fd, mago.c_str(), mago.size(), 0);
 		cout << "---------------------- out 3 ----------------------\n" << join;
+		cout << mago << endl;
 	}
+}
+
+string&	eraseCrAndNl(string& buf){
+	size_t	pos = buf.find("\r");
+	if (pos < buf.length())
+		buf.erase(pos, 1);
+	pos = buf.find("\n");
+	if (pos < buf.length())
+		buf.erase(pos, 1);
+	return (buf);
 }

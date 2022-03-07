@@ -91,8 +91,8 @@ void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
 	string toSend;
 	size_t	pos = buf.find(":") + 1;
 	string msg = buf.substr(pos);
-
-	cout << "MSG : " << msg << endl;
+	string mago = ":Magolebot!Magolebot@localhost PRIVMSG #mago :Je m'appelle Magomed\r\n";
+	//cout << "MSG : " << msg << endl;
 	if (chan_name == "mago" && msg == "hello"){
 		toSend = ":Magolebot!Magolebot@localhost PRIVMSG #mago :Je m'appelle Magomed\r\n";
 	}
@@ -104,7 +104,9 @@ void Channel::send_msg_to_channel(string chan_name, int fd, string buf) const {
 			int user_fd = _user[j].getFd();
 			if (user_fd != fd) {
 				send(user_fd, toSend.c_str(), toSend.size(), 0);
+				send(user_fd, mago.c_str(), mago.size(), 0);
 				cout << "---------------------- out ----------------------\n" << toSend << endl;
+				cout << mago << endl;
 			}
 		}
 	}
