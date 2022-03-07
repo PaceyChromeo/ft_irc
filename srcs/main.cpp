@@ -215,6 +215,21 @@ int main(int ac, char **av) {
 			event_fd = eventlist[i].ident;
 			if (eventlist[i].flags & EV_EOF){
 				cout << "Client Quit\r\n";
+				cout << event_fd << endl;
+				int i = srv.findUser(event_fd);
+				cout << "I :" << i << endl;
+				string nckname = srv.getUser(i).getNick();
+				cout << "NICK : " << nckname << endl;
+				for (size_t i = 0; i < srv.getChannel().size(); i++) {
+					cout << "SIZE " << srv.getChannel().size() << endl;
+					for (size_t j = 0; j < srv.getChannel(i).get_user().size(); j++) {
+						string chan_name = srv.getChannel(i).get_name();
+						cout << "CHANNEL NAME" << chan_name << endl;
+						if (nckname == srv.getChannel(i).get_user(j).getNick())
+							cout << "ICI\n";
+							srv.removeUserFromChannel(chan_name, srv.getChannel(i).get_user()[j]);
+					}
+				}
 				srv.removeUser(event_fd);
 				close(event_fd);
 			}
