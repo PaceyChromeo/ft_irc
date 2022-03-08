@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 
+
 #define	KICK_TIME 240
 #define BUF_SIZE 512
 #define EOL	"\r\n"
@@ -21,6 +22,8 @@
 #define NO "NO"
 #define TRUE "TRUE"
 #define FALSE "FALSE"
+
+class Channel;
 
 enum e_cmd {	PASS,
 				NICK,
@@ -36,7 +39,8 @@ enum e_cmd {	PASS,
 				PRIVMSG,
 				QUIT,
 				userhost,
-				WHOIS };
+				WHOIS,
+				TOPIC };
 
 using namespace std;
 

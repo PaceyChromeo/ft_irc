@@ -9,7 +9,7 @@ string passCmd(Server* srv, string buf, User& user){
 	else{
 		srv->setPassEnable(1);
 		return ("");
-	}
+	}	
 }
 
 string	nickCmd(Server* srv, string buf, User& user){
@@ -156,12 +156,18 @@ string	modeCmd(Server* srv, string buf, User& user, int fd){
 	return (toSend);
 }
 
-string whoCmd(Server* srv, User& user){
+string whoCmd(Server* srv, User& user, string buf){
+	(void)srv;
 	string	nickname = user.getNick();
 	string	toSend;
-
-	(void)srv;
-	toSend = ":localhost 352 " +  nickname + " #toto " + nickname + " localhost " + nickname + " H*@ :0 " + nickname + EOL + ":localhost 315 " + nickname + " #toto :End of /WHO list." + EOL;
+	size_t htag = buf.find("#");
+	string chan_name = buf.substr(htag + 1);
+	int end = chan_name.find(" ");
+	if (end > BUF_SIZE)
+		return EOL;
+	chan_name = chan_name.substr(0, end);
+	eraseCrAndNl(chan_name);
+	toSend = ":localhost 352 " +  nickname + " #" + chan_name + " " + nickname + " localhost " + nickname + " H*@ :0 " + nickname + EOL + ":localhost 315 " + nickname + " #" + chan_name + " :End of /WHO list." + EOL;
 	return (toSend);
 }
 
@@ -206,6 +212,8 @@ string	partCmd(Server* srv, string buf, User& usr){
 	
 	srv->removeUserFromChannel(chan, usr);
 	int	i = srv->findChannel(chan);
+	if (i == -1)
+		return EOL;
 	toSend = ":" + nick + "!" + user + "@" + host + " " + buf + EOL;
 	for (size_t k = 0; k < srv->getChannel(i).get_users_size(); k++) {
 		int user_fd = srv->getChannel(i).get_user()[k].getFd();
@@ -225,7 +233,7 @@ string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 		chan_name = chan_name.substr(0, hashtag);
 		chan_name = eraseCrAndNl(chan_name);
 		int j = srv->findChannel(chan_name);
-		srv->getChannel(j).print_users();
+		// srv->getChannel(j).print_users();
 		if (j != -1)
 			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
 	}
@@ -251,13 +259,13 @@ string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 string	noticeCmd(Server* srv, string buf, vector<User>& usr, int fd){
 	if (buf.find("#") < BUF_SIZE){
 		string	chan_name;
-		size_t	hashtag = buf.find("#");
-		chan_name = buf.substr(hashtag + 1);
-		hashtag = chan_name.find(" ");
-		chan_name = chan_name.substr(0, hashtag);
+		size_t	pos = buf.find("#");
+		chan_name = buf.substr(pos + 1);
+		pos = chan_name.find(" ");
+		chan_name = chan_name.substr(0, pos);
 		chan_name = eraseCrAndNl(chan_name);
 		int j = srv->findChannel(chan_name);
-		srv->getChannel(j).print_users();
+		//srv->getChannel(j).print_users();
 		if (j != -1)
 			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
 	}
@@ -315,12 +323,16 @@ void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 	string username = user.getUser();
 	string hostname = user.getHost();
 	string nicks;
+	string topic;
 	(void)srv;
 
 	if (channel.get_users_size() == 1) {
 		channel.setOperatorMode(fd, '+', 'o');
 	}
-	channel.print_users();
+	if (channel.get_name() == "mago")
+		topic = ":localhost 332 Magolebot #mago :Je vous souhaite la bienvenue sur mon magnifique channel, ici vous pouvez parler de tout, sauf de la Russie ;-)\r\n";
+	else
+		topic = ":localhost 332 " + nickname + " #" + channel.get_name() + " :" + channel.get_topic() + "\r\n";
 	for (size_t i = 0; i < channel.get_users_size(); i++) {
 		if (channel.get_user(i).getMode().find("o") < BUF_SIZE) {
 			nicks += "@";
@@ -333,8 +345,9 @@ void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 	string join2(":" + nickname + "!" + username + "@" + hostname + " JOIN #" + channel.get_name() + "\r\n");
 	for(size_t i = 0; i < channel.get_users_size(); i++) {
 		if (channel.get_users_size() == 1) {
+			send(fd, topic.c_str(), topic.size(), 0);
 			send(fd, join.c_str(), join.size(), 0);
-			cout << "---------------------- out 1 ----------------------\n" << join;
+			cout << "---------------------- out 1 ----------------------\n" << topic << join;
 		}
 		else {
 			if (i < channel.get_users_size()) {
@@ -347,8 +360,9 @@ void joinCmd(Server *srv, User &user, int fd, Channel& channel) {
 		}
 	}
 	if (channel.get_users_size() > 1) {
+		send(fd, topic.c_str(), topic.size(), 0);
 		send(fd, join.c_str(), join.size(), 0);
-		cout << "---------------------- out 3 ----------------------\n" << join;
+		cout << "---------------------- out 3 ----------------------\n" << topic << join;
 	}
 }
 
@@ -360,4 +374,40 @@ string&	eraseCrAndNl(string& buf){
 	if (pos < buf.length())
 		buf.erase(pos, 1);
 	return (buf);
+}
+
+string    topicCmd(Server* srv, User& user, string buf) {
+	size_t colons = buf.find(":");
+	if (colons > BUF_SIZE)
+		return EOL;
+	string msg = buf.substr(colons + 1);
+	eraseCrAndNl(msg);
+	size_t htag = buf.find("#");
+	if (htag > BUF_SIZE)
+		return EOL;
+	string chan_name = buf.substr(htag + 1);
+	size_t end = chan_name.find(" ");
+	if (end > BUF_SIZE)
+		return EOL;
+	chan_name = chan_name.substr(0, end);
+	eraseCrAndNl(chan_name);
+	int idx_chan = srv->findChannel(chan_name);
+	if (idx_chan == -1)
+		return EOL;
+	int idx_usr = srv->getChannel()[idx_chan].findUser(user.getNick());
+	if (idx_usr == -1)
+		return EOL;
+	size_t op = srv->getChannel()[idx_chan].get_user()[idx_usr].getMode().find("o");
+	if (op > BUF_SIZE)
+		return EOL;
+	string toSend;
+	toSend = ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + " " + buf;
+	size_t users_size = srv->getChannel()[idx_chan].get_users_size();
+	for (size_t i = 0; i < users_size; i++){
+		int user_fd = srv->getChannel()[idx_chan].get_user(i).getFd();
+		send(user_fd, toSend.c_str(), toSend.length(), 0);
+		cout << "---------------------- out ----------------------\n" << toSend;
+	}
+	srv->getChannel(idx_chan).set_topic(msg);
+    return (EOL);
 }

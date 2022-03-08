@@ -220,14 +220,13 @@ int Server::removeUserFromChannel(string name, User& user){
 
 	if (i > -1 && (_channel[i].get_users_size() > 0)) {
 		_channel[i].removeUser(user.getNick());
-		_channel[i].print_users();
 		return (0);
 	}
 	return (-1);
 }
 
 int	Server::findCommand(string buf) const {
-	char		*args[15] = {	(char *)"PASS",
+	char		*args[16] = {	(char *)"PASS",
 								(char *)"NICK",
 								(char *)"USER",
 								(char *)"MODE",
@@ -241,10 +240,11 @@ int	Server::findCommand(string buf) const {
 								(char *)"PRIVMSG",
 								(char *)"QUIT",
 								(char *)"userhost",
-								(char *)"WHOIS"};
+								(char *)"WHOIS",
+								(char *)"TOPIC"};
 	int i = 0;
 	
-	while (i < 15){
+	while (i < 16){
 		if (buf.find(args[i]) < BUF_SIZE)
 			return (i);
 		i++;
@@ -300,7 +300,7 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 		if (i == -1)
 			return EOL;
 		else
-			return (whoCmd(this, _user[i]));
+			return (whoCmd(this, _user[i], buf));
 	}
 
 	else if (cmd_nbr == KICK){
@@ -369,11 +369,6 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 
 	}
 	else if (cmd_nbr == PRIVMSG){
-		int	i = findUser(fd);
-	
-		if (i == -1)
-			return EOL;
-		else
 			return (privmsgCmd(this, buf, _user, fd));
 	}
 	else if (cmd_nbr == QUIT){
@@ -398,6 +393,13 @@ string	Server::performCommand(int cmd_nbr, string buf, int fd) {
 			return(get_rpl_msg("WHOIS", User()));
 		else
 			return(get_rpl_msg("WHOIS", _user[index]));
+	}
+	else if (cmd_nbr == TOPIC){
+		int	i = findUser(fd);
+
+		if (i == -1)
+			return EOL;
+		return (topicCmd(this, _user[i], buf));
 	}
 	return EOL;
 }
