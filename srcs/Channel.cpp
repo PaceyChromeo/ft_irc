@@ -68,7 +68,7 @@ void Channel::setOperatorMode(int fd, char sign, char mode) {
 
 int	Channel::findUser(string name) const{
 	for (size_t i = 0; i <= _user.size(); i++){
-		cout << _user[i].getNick() << endl;
+		//cout << _user[i].getNick() << endl;
 		if (name == _user[i].getNick())
 			return (i);
 	}
@@ -86,23 +86,13 @@ int	Channel::removeUser(string name){
 }
 
 string	AmaMago(string qs){
-	cout << "ICI \n";
-	// size_t sp = question.find(":");
-	// string qs;
-
-	// cout << "QUES " << question << endl;
-	// if (sp < question.length()){
-	// 	qs = question.substr(sp + 1);
-	// }
-	// else
-	// 	return ("");
 	if (qs.find("Presente") < qs.length() || qs.find("presente") < qs.length())
 		return ("Je m'appelle Magomed, je suis pour l'egalite des sexes et je milite pour la reconnaissance des droits LGBT\r\n");
 	else if (qs.find("Pays") < qs.length() || qs.find("pays") < qs.length())
 		return ("la Tchetchenie, mais je trouve aussi que la Tunisie est un tres beau pays, Vive la Tunisie!\r\n");
 	else if (qs.find("Age") < qs.length() || qs.find("age") < qs.length())
 		return ("Ca s'fait pas de demander.\r\n");
-	else if (qs.find("orientation sexuelle") < qs.length())
+	else if (qs.find("Orientation sexuelle") < qs.length())
 		return ("Je suis un cabinet\r\n");
 	else if (qs.find("Vim") < qs.length() || qs.find("vim") < qs.length())
 		return ("Vraiment de la merde!!\r\n");

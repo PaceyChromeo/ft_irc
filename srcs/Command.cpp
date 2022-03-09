@@ -233,7 +233,6 @@ string	privmsgCmd(Server* srv, string buf, vector<User>& usr, int fd){
 		chan_name = chan_name.substr(0, hashtag);
 		chan_name = eraseCrAndNl(chan_name);
 		int j = srv->findChannel(chan_name);
-		// srv->getChannel(j).print_users();
 		if (j != -1)
 			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
 	}
@@ -265,7 +264,6 @@ string	noticeCmd(Server* srv, string buf, vector<User>& usr, int fd){
 		chan_name = chan_name.substr(0, pos);
 		chan_name = eraseCrAndNl(chan_name);
 		int j = srv->findChannel(chan_name);
-		//srv->getChannel(j).print_users();
 		if (j != -1)
 			srv->getChannel(j).send_msg_to_channel(chan_name, fd, buf);
 	}

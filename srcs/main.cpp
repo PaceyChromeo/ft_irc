@@ -200,6 +200,10 @@ int main(int ac, char **av) {
 	char						buf[BUF_SIZE];
 	ssize_t						bytes_read;
 
+	if (port < 1500 || port > 50000){
+		cerr << "Error: Port invalide: Choose between 1500-50000\n";
+		exit(1);
+	}
 	client_len = sizeof(client_addr);
 	kq = kqueue();
 	enable_read(tmp_kevent, changelist, srv.getListen());
@@ -216,12 +220,14 @@ int main(int ac, char **av) {
 			if (eventlist[i].flags & EV_EOF){
 				cout << "Client Quit\r\n";
 				int i = srv.findUser(event_fd);
-				string nckname = srv.getUser(i).getNick();
-				for (size_t i = 0; i < srv.getChannel().size(); i++) {
-					for (size_t j = 0; j < srv.getChannel(i).get_user().size(); j++) {
-						string chan_name = srv.getChannel(i).get_name();
-						if (nckname == srv.getChannel(i).get_user(j).getNick())
-							srv.removeUserFromChannel(chan_name, srv.getChannel(i).get_user()[j]);
+				if (i != -1){
+					string nckname = srv.getUser(i).getNick();
+					for (size_t i = 0; i < srv.getChannel().size(); i++) {
+						for (size_t j = 0; j < srv.getChannel(i).get_user().size(); j++) {
+							string chan_name = srv.getChannel(i).get_name();
+							if (nckname == srv.getChannel(i).get_user(j).getNick())
+								srv.removeUserFromChannel(chan_name, srv.getChannel(i).get_user()[j]);
+						}
 					}
 				}
 				srv.removeUser(event_fd);

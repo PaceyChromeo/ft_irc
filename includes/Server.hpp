@@ -70,9 +70,8 @@ class Server{
 				exit(EXIT_FAILURE);
 			}
 			_magolebot = User("Magolebot", "Magolebot", "Magolebot", "localhost", "o", 0, 1, 1, 1);
-			// _user.push_back(magolebot);
-			// _size++;
 			createChannels();
+			addUserToChannel("mago", _magolebot);
 		};
 
 		string	get_err_msg(string error, string cmd, const User& user) const;
